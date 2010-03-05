@@ -85,6 +85,51 @@ void PrintfErr(NSString *aStr, ...)
 
 
 
+
+OSStatus moveFileToTrash(NSString *filePath)
+{
+	// We use FSMoveObjectToTrashSync() directly instead of
+	// using NSWorkspace's performFileOperation:... (which
+	// uses FSMoveObjectToTrashSync()) because the former
+	// returns us an OSStatus describing a possible error
+	// and the latter only returns a BOOL describing success
+	// or failure.
+	// 
+	
+	if (filePath == nil)
+		return NO;
+	
+	// path to FSRef
+	FSRef fsRef;
+	const char *filePathCString = [filePath UTF8String];
+	CFURLRef filePathURL = CFURLCreateWithBytes(
+		kCFAllocatorDefault,
+		(const UInt8 *)filePathCString,
+		strlen(filePathCString),
+		kCFStringEncodingUTF8,
+		NULL // CFURLRef baseURL
+		);
+	CFURLGetFSRef(filePathURL, &fsRef);
+	CFRelease(filePathURL);
+	
+	// perform trashing, return OSStatus
+	return FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
+}
+
+
+NSString *osStatusToErrorString(OSStatus status)
+{
+	// GetMacOSStatusCommentString() generally shouldn't be used
+	// to provide error messages to users but using it is much better
+	// than manually writing a long switch statement and typing up
+	// the error messages -- the messages returned by this function
+	// are 'good enough' for this program's supposed users.
+	// 
+	return [[NSString stringWithUTF8String:GetMacOSStatusCommentString(status)]
+			stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+}
+
+
 NSString* versionNumberStr()
 {
 	return [NSString stringWithFormat:@"%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD];
@@ -99,26 +144,6 @@ void printUsage()
 	Printf(@"Version %@\n", versionNumberStr());
 	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/\n");
 	Printf(@"\n");
-}
-
-// returns YES if success, NO if failure
-BOOL moveFileToTrash(NSString *filePath)
-{
-	if (filePath == nil)
-		return NO;
-	
-	NSString *fileDir = [filePath stringByDeletingLastPathComponent];
-	NSString *fileName = [filePath lastPathComponent];
-	
-	// in 10.5, this uses FSMoveObjectToTrashSync()
-	// 
-	return [[NSWorkspace sharedWorkspace]
-		performFileOperation:NSWorkspaceRecycleOperation
-		source:fileDir
-		destination:@""
-		files:[NSArray arrayWithObject:fileName]
-		tag:nil
-		];
 }
 
 
@@ -158,42 +183,27 @@ int main(int argc, char *argv[])
 		printUsage();
 		EXIT(1);
 	}
-	else
+	
+	for (NSString *path in paths)
 	{
-		NSFileManager *fm = [NSFileManager defaultManager];
-		
-		for (NSString *path in paths)
+		OSStatus status = moveFileToTrash(path);
+		if (status != noErr)
 		{
-			if (!moveFileToTrash(path))
+			exitValue = 1;
+			
+			if (fnfErr == status)
 			{
-				if (exitValue == 0)
-					exitValue = 1;
-				
-				// show meaningful error msg (moveFileToTrash() cannot
-				// provide that due to the API it uses)
+				// We get a 'file not found' also in the case
+				// where the user lacks execute privileges to the
+				// parent folder so let's check for those cases
+				// separately.
 				// 
-				
-				// TODO:
-				// isDeletableFileAtPath does not traverse symlinks. (so that's okay)
-				// fileExistsAtPath and isExecutableFileAtPath do. (need to find alternative methods!)
-				// 
-				BOOL fileExists = [fm fileExistsAtPath:path];
-				BOOL fileDeletable = [fm isDeletableFileAtPath:path];
-				BOOL dirExists = [fm fileExistsAtPath:[path stringByDeletingLastPathComponent]];
-				BOOL dirExecutable = [fm isExecutableFileAtPath:[path stringByDeletingLastPathComponent]];
-				
-				if (!fileDeletable)
-				{
-					if (dirExists && !dirExecutable)
-						PrintfErr(@"Error: no permission to access parent dir: %@\n", path);
-					else if (!fileExists)
-						PrintfErr(@"Error: path does not exist: %@\n", path);
-					else
-						PrintfErr(@"Error: no permission to delete: %@\n", path);
-				}
-				else
-					PrintfErr(@"Error: can not delete %@\n", path);
+				NSString *parentDirPath = [path stringByDeletingLastPathComponent];
+				if (![[NSFileManager defaultManager] isExecutableFileAtPath:parentDirPath])
+					status = afpAccessDenied;
 			}
+			
+			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
 	
