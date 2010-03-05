@@ -166,13 +166,33 @@ int main(int argc, char *argv[])
 		{
 			if (!moveFileToTrash(path))
 			{
-				if (![fm fileExistsAtPath:path])
-					PrintfErr(@"Error: path does not exist: %@\n", path);
-				else
-					PrintfErr(@"Error: can not delete %@\n", path);
-				
 				if (exitValue == 0)
 					exitValue = 1;
+				
+				// show meaningful error msg (moveFileToTrash() cannot
+				// provide that due to the API it uses)
+				// 
+				
+				// TODO:
+				// isDeletableFileAtPath does not traverse symlinks. (so that's okay)
+				// fileExistsAtPath and isExecutableFileAtPath do. (need to find alternative methods!)
+				// 
+				BOOL fileExists = [fm fileExistsAtPath:path];
+				BOOL fileDeletable = [fm isDeletableFileAtPath:path];
+				BOOL dirExists = [fm fileExistsAtPath:[path stringByDeletingLastPathComponent]];
+				BOOL dirExecutable = [fm isExecutableFileAtPath:[path stringByDeletingLastPathComponent]];
+				
+				if (!fileDeletable)
+				{
+					if (dirExists && !dirExecutable)
+						PrintfErr(@"Error: no permission to access parent dir: %@\n", path);
+					else if (!fileExists)
+						PrintfErr(@"Error: path does not exist: %@\n", path);
+					else
+						PrintfErr(@"Error: no permission to delete: %@\n", path);
+				}
+				else
+					PrintfErr(@"Error: can not delete %@\n", path);
 			}
 		}
 	}
