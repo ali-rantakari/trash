@@ -130,7 +130,6 @@ int main(int argc, char *argv[])
 {
 	NSAutoreleasePool *autoReleasePool = [[NSAutoreleasePool alloc] init];
 	
-	
 	myBasename = basename(argv[0]);
 	
 	if (argc == 1)
@@ -139,7 +138,6 @@ int main(int argc, char *argv[])
 		EXIT(0);
 	}
 	
-	NSMutableArray *URLs = [NSMutableArray arrayWithCapacity:(NSUInteger)argc];
 	NSMutableArray *paths = [NSMutableArray arrayWithCapacity:(NSUInteger)argc];
 	
 	int i;
@@ -152,15 +150,10 @@ int main(int argc, char *argv[])
 			PrintfErr(@"Error: invalid path: %s\n", argv[i]);
 			continue;
 		}
-		NSURL *fileURL = [NSURL fileURLWithPath:path];
-		[URLs addObject:fileURL];
 		[paths addObject:path];
 	}
 	
-	//Printf(@" URLs: %@\n", URLs);
-	//Printf(@" paths: %@\n", paths);
-	
-	if ([URLs count] == 0)
+	if ([paths count] == 0)
 	{
 		printUsage();
 		EXIT(1);
@@ -182,24 +175,6 @@ int main(int argc, char *argv[])
 					exitValue = 1;
 			}
 		}
-		
-		// note: (from the docs)
-		// "This methods may show a progress indicator, or other user interface
-		// elements, at AppKit's discretion."
-		// 
-		// 10.6 only but doesn't seem to work (?)
-		// 
-		/*
-		[[NSWorkspace sharedWorkspace]
-			recycleURLs:URLs
-			completionHandler:^(NSDictionary *newURLs, NSError *error)
-			{
-				if (error != nil)
-				{
-					PrintfErr(@"Error: %@\n", [error localizedDescription]);
-				}
-			}];
-		*/
 	}
 	
 	
