@@ -97,7 +97,7 @@ OSStatus moveFileToTrash(NSString *filePath)
 	// 
 	
 	if (filePath == nil)
-		return NO;
+		return bdNamErr;
 	
 	// path to FSRef
 	FSRef fsRef;
