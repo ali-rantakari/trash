@@ -192,9 +192,16 @@ NSString* versionNumberStr()
 char *myBasename;
 void printUsage()
 {
-	Printf(@"usage: %s [-vl] <file> [<file> ...]\n", myBasename);
+	Printf(@"usage: %s [-vles] <file> [<file> ...]\n", myBasename);
 	Printf(@"\n");
 	Printf(@"  Move files/folders to the trash.\n");
+	Printf(@"\n");
+	Printf(@"  Options:\n");
+	Printf(@"\n");
+	Printf(@"  -v  Be verbose; show files as they are deleted\n");
+	Printf(@"  -l  List items currently in trash\n");
+	Printf(@"  -e  Empty trash (asks for confirmation)\n");
+	Printf(@"  -s  Empty trash securely (asks for confirmation)\n");
 	Printf(@"\n");
 	Printf(@"Version %@\n", versionNumberStr());
 	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/\n");
