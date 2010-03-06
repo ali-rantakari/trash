@@ -86,7 +86,97 @@ void PrintfErr(NSString *aStr, ...)
 
 
 
-OSStatus moveFileToTrash(NSString *filePath)
+
+#define kNeedsHelpErr            1
+#define kInvalidArgumentErr        2
+#define kInvalidDestinationErr    3
+#define kCouldNotCreateCFString    4
+#define kCouldNotGetStringData    5
+#define MAX_PATH                1024
+
+// this code is from an apple sample project:
+// http://developer.apple.com/mac/library/samplecode/FSCopyObject/listing8.html
+// 
+static OSErr ConvertCStringToHFSUniStr(const char* cStr, HFSUniStr255 *uniStr)
+{
+    OSErr err = noErr;
+    CFStringRef tmpStringRef = CFStringCreateWithCString( kCFAllocatorDefault, cStr, kCFStringEncodingMacRoman );
+    if( tmpStringRef != NULL )
+    {
+        if( CFStringGetCString( tmpStringRef, (char*)uniStr->unicode, sizeof(uniStr->unicode), kCFStringEncodingUnicode ) )
+            uniStr->length = CFStringGetLength( tmpStringRef );
+        else
+            err = kCouldNotGetStringData;
+            
+        CFRelease( tmpStringRef );
+    }
+    else
+        err = kCouldNotCreateCFString;
+    
+    return err;
+}
+
+
+// this code is from an apple sample project:
+// http://developer.apple.com/mac/library/samplecode/FSCopyObject/listing8.html
+//
+// Due to a bug in the X File Manager, 2489632,
+// FSPathMakeRef doesn't handle symlinks properly.  It
+// automatically resolves it and returns an FSRef to the
+// symlinks target, not the symlink itself.  So this is a
+// little workaround for it...
+//
+// We could call lstat() to find out if the object is a
+// symlink or not before jumping into the guts of the
+// routine, but its just as simple, and fast when working
+// on a single item like this, to send everything through
+// this routine
+static OSErr MyFSPathMakeRef( const unsigned char *path, FSRef *ref )
+{
+	FSRef tmpFSRef;
+	char tmpPath[ MAX_PATH ],
+		*tmpNamePtr;
+	OSErr err;
+	
+	// Get local copy of incoming path
+	strcpy( tmpPath, (char*)path );
+	
+	// Get the name of the object from the given path
+	// Find the last / and change it to a '\0' so
+	// tmpPath is a path to the parent directory of the
+	// object and tmpNamePtr is the name
+	tmpNamePtr = strrchr( tmpPath, '/' );
+	if( *(tmpNamePtr + 1) == '\0' ) // in case the last character in the path is a /
+	{
+		*tmpNamePtr = '\0';
+		tmpNamePtr = strrchr( tmpPath, '/' );
+	}
+	*tmpNamePtr = '\0';
+	tmpNamePtr++;
+	
+	// Get the FSRef to the parent directory
+	err = FSPathMakeRef( (unsigned char*)tmpPath, &tmpFSRef, NULL );
+	if( err == noErr )
+	{
+		// Convert the name to a Unicode string and pass it
+		// to FSMakeFSRefUnicode to actually get the FSRef
+		// to the object (symlink)
+		HFSUniStr255    uniName;
+		err = ConvertCStringToHFSUniStr( tmpNamePtr, &uniName );
+		if( err == noErr )
+			err = FSMakeFSRefUnicode( &tmpFSRef, uniName.length, uniName.unicode, kTextEncodingUnknown, &tmpFSRef );
+	}
+	
+	if( err == noErr )
+		*ref = tmpFSRef;
+	
+	return err;
+}
+
+
+
+
+OSStatus moveFileToTrash(unsigned char *filePath)
 {
 	// We use FSMoveObjectToTrashSync() directly instead of
 	// using NSWorkspace's performFileOperation:... (which
@@ -101,6 +191,10 @@ OSStatus moveFileToTrash(NSString *filePath)
 	
 	// path to FSRef
 	FSRef fsRef;
+	MyFSPathMakeRef(filePath, &fsRef);
+	
+	/*
+	FSRef fsRef;
 	const char *filePathCString = [filePath UTF8String];
 	CFURLRef filePathURL = CFURLCreateWithBytes(
 		kCFAllocatorDefault,
@@ -111,6 +205,7 @@ OSStatus moveFileToTrash(NSString *filePath)
 		);
 	CFURLGetFSRef(filePathURL, &fsRef);
 	CFRelease(filePathURL);
+	*/
 	
 	// perform trashing, return OSStatus
 	return FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
@@ -163,34 +258,24 @@ int main(int argc, char *argv[])
 		EXIT(0);
 	}
 	
-	NSMutableArray *paths = [NSMutableArray arrayWithCapacity:(NSUInteger)argc];
-	
+	BOOL atLeastOneValidPath = NO;
 	int i;
 	for (i = 1; i < argc; i++)
 	{
+		unsigned char *path = (unsigned char *)argv[i];
+		
 		// note: don't standardize the paths! we don't want to expand symlinks.
-		NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
-		if (path == nil)
-		{
-			PrintfErr(@"Error: invalid path: %s\n", argv[i]);
-			continue;
-		}
-		[paths addObject:path];
-	}
-	
-	if ([paths count] == 0)
-	{
-		printUsage();
-		EXIT(1);
-	}
-	
-	for (NSString *path in paths)
-	{
+		//NSString *nspath = [[NSString stringWithUTF8String:path] stringByExpandingTildeInPath];
+		//path = (unsigned char *)[nspath UTF8String];
+		
 		OSStatus status = moveFileToTrash(path);
-		if (status != noErr)
+		if (status == noErr)
+			atLeastOneValidPath = YES;
+		else
 		{
 			exitValue = 1;
 			
+			/*
 			if (fnfErr == status)
 			{
 				// We get a 'file not found' also in the case
@@ -198,14 +283,18 @@ int main(int argc, char *argv[])
 				// parent folder so let's check for those cases
 				// separately.
 				// 
-				NSString *parentDirPath = [path stringByDeletingLastPathComponent];
+				NSString *parentDirPath = [nspath stringByDeletingLastPathComponent];
 				if (![[NSFileManager defaultManager] isExecutableFileAtPath:parentDirPath])
 					status = afpAccessDenied;
 			}
+			*/
 			
-			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
+			PrintfErr(@"Error: can not delete: %s (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
+	
+	if (!atLeastOneValidPath)
+		printUsage();
 	
 	
 cleanUpAndExit:
