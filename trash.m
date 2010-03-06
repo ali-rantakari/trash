@@ -34,7 +34,7 @@ THE SOFTWARE.
 
 
 const int VERSION_MAJOR = 0;
-const int VERSION_MINOR = 9;
+const int VERSION_MINOR = 5;
 const int VERSION_BUILD = 0;
 
 BOOL arg_verbose = NO;
