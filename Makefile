@@ -39,7 +39,7 @@ trash: trash.m
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -o $@ trash.m
+	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -o $@ trash.m
 
 
 

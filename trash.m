@@ -30,6 +30,7 @@ THE SOFTWARE.
 
 
 #include <AppKit/AppKit.h>
+#include <ScriptingBridge/ScriptingBridge.h>
 #import <libgen.h>
 
 
@@ -142,7 +143,7 @@ NSString* versionNumberStr()
 char *myBasename;
 void printUsage()
 {
-	Printf(@"usage: %s [-v] <file> ...\n", myBasename);
+	Printf(@"usage: %s [-vl] <file> [<file> ...]\n", myBasename);
 	Printf(@"\n");
 	Printf(@"  Move files/folders to the trash.\n");
 	Printf(@"\n");
@@ -168,17 +169,39 @@ int main(int argc, char *argv[])
 		EXIT(0);
 	}
 	
+	BOOL arg_list = NO;
+	
 	int opt;
-	while ((opt = getopt(argc, argv, "v")) != EOF)
+	while ((opt = getopt(argc, argv, "vl")) != EOF)
 	{
 		switch (opt)
 		{
 			case 'v':	arg_verbose = YES;
 				break;
+			case 'l':	arg_list = YES;
+				break;
 			case '?':
 			default:
 				printUsage();
-				exit(1);
+				EXIT(1);
+		}
+	}
+	
+	
+	
+	SBApplication *finder = nil;
+	
+	if (arg_list)
+	{
+		finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+		
+		if (arg_list)
+		{
+			for (id item in [[finder performSelector:@selector(trash)] items])
+			{
+				Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
+			}
+			EXIT(0);
 		}
 	}
 	
@@ -187,7 +210,7 @@ int main(int argc, char *argv[])
 	int i;
 	for (i = optind; i < argc; i++)
 	{
-		// note: don't standardize the paths! we don't want to expand symlinks.
+		// Note: don't standardize the path! we don't want to expand symlinks.
 		NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
 		if (path == nil)
 		{
@@ -201,20 +224,7 @@ int main(int argc, char *argv[])
 		else
 		{
 			exitValue = 1;
-			
-			if (fnfErr == status)
-			{
-				// We get a 'file not found' also in the case
-				// where the user lacks execute privileges to the
-				// parent folder so let's check for those cases
-				// separately.
-				// 
-				NSString *parentDirPath = [path stringByDeletingLastPathComponent];
-				if (![[NSFileManager defaultManager] isExecutableFileAtPath:parentDirPath])
-					status = afpAccessDenied;
-			}
-			
-			PrintfErr(@"Error: can not delete: %s (%@)\n", path, osStatusToErrorString(status));
+			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
 	
