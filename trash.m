@@ -95,6 +95,55 @@ void PrintfErr(NSString *aStr, ...)
 
 
 
+int emptyTrash(BOOL securely)
+{
+	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	id trash = [finder performSelector:@selector(trash)];
+	
+	NSUInteger trashItemsCount = [[trash items] count];
+	if (trashItemsCount == 0)
+	{
+		Printf(@"The trash is already empty.\n");
+		return 0;
+	}
+	
+	BOOL plural = (trashItemsCount > 1);
+	Printf(
+		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n",
+		plural?@"are":@"is",
+		trashItemsCount,
+		plural?@"s":@"",
+		securely?@" (and securely)":@"",
+		plural?@"these":@"this",
+		plural?@"s":@""
+		);
+	
+	Printf(@"[y/N]: ");
+	char inputChar;
+	scanf("%s&*c",&inputChar);
+	
+	if (inputChar != 'y' && inputChar != 'Y')
+		return 1;
+	
+	[trash setWarnsBeforeEmptying:NO];
+	[trash emptySecurity:securely];
+	
+	return 0;
+}
+
+void listTrashContents()
+{
+	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	id trash = [finder performSelector:@selector(trash)];
+	
+	for (id item in [trash items])
+	{
+		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
+	}
+}
+
+
+
 OSStatus moveFileToTrash(NSString *filePath)
 {
 	// We use FSMoveObjectToTrashSync() directly instead of
@@ -155,7 +204,7 @@ void printUsage()
 
 
 int exitValue = 0;
-#define EXIT(x)		exitValue = x; goto cleanUpAndExit;
+#define EXIT(x)		{ exitValue = x; goto cleanUpAndExit; }
 
 int main(int argc, char *argv[])
 {
@@ -170,15 +219,21 @@ int main(int argc, char *argv[])
 	}
 	
 	BOOL arg_list = NO;
+	BOOL arg_empty = NO;
+	BOOL arg_emptySecurely = NO;
 	
 	int opt;
-	while ((opt = getopt(argc, argv, "vl")) != EOF)
+	while ((opt = getopt(argc, argv, "vles")) != EOF)
 	{
 		switch (opt)
 		{
 			case 'v':	arg_verbose = YES;
 				break;
 			case 'l':	arg_list = YES;
+				break;
+			case 'e':	arg_empty = YES;
+				break;
+			case 's':	arg_emptySecurely = YES;
 				break;
 			case '?':
 			default:
@@ -189,19 +244,16 @@ int main(int argc, char *argv[])
 	
 	
 	
-	SBApplication *finder = nil;
-	
-	if (arg_list)
+	if (arg_list || arg_empty || arg_emptySecurely)
 	{
-		finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-		
 		if (arg_list)
 		{
-			for (id item in [[finder performSelector:@selector(trash)] items])
-			{
-				Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
-			}
+			listTrashContents();
 			EXIT(0);
+		}
+		else if (arg_empty || arg_emptySecurely)
+		{
+			EXIT(emptyTrash(arg_emptySecurely));
 		}
 	}
 	
