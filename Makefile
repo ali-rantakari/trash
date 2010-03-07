@@ -51,7 +51,7 @@ trash.1: trash.pod
 	@echo
 	@echo ---- Generating manpage from POD file:
 	@echo ======================================
-	pod2man --section=1 --release=1.0 --center="trash" --date="$(CURRDATE)" trash.pod > trash.1
+	pod2man --section=1 --release=$(APP_VERSION) --center="trash" --date="$(CURRDATE)" trash.pod > trash.1
 
 
 #-------------------------------------------------------------------------

@@ -1,0 +1,48 @@
+=head1 NAME
+
+B<trash> -- move files/folders to the trash
+
+
+=head1 SYNOPSIS
+
+=over 10
+
+=item B<trash>
+
+[B<-vles>] I<file> I<...>
+
+=back
+
+=head1 DESCRIPTION
+
+B<trash> moves the specified files and/or folders to the system trash.
+
+The options are as follows:
+
+=over 12
+
+=item B<-v>
+
+Be verbose when moving items to the trash, showing them as they are moved.
+
+=item B<-l>
+
+List items currently in the trash. If this argument is used, no files need to be specified.
+
+=item B<-e>
+
+Empty the trash. B<trash> asks for confirmation before executing this action. If this argument is used, no files need to be specified.
+
+=item B<-s>
+
+Securely empty the trash. B<trash> asks for confirmation before executing this action. If this argument is used, no files need to be specified.
+
+
+=head1 SEE ALSO
+
+rm(1)
+
+=head1 AUTHORS
+
+This man page has been written by Ali Rantakari (http://hasseg.org)
+
