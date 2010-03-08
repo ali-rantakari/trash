@@ -34,7 +34,9 @@ THE SOFTWARE.
 #import <libgen.h>
 #import "Finder.h"
 
-#define kHGAppleScriptError		-10001
+// (Apple reserves OSStatus values outside the range 1000-9999 inclusive)
+#define kHGAppleScriptError		9999
+#define kHGUserCancelledError	9998
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 5;
@@ -214,16 +216,19 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 	// execute
 	NSDictionary *asError = nil;
 	NSAppleScript *trashFilesAS = [[NSAppleScript alloc] initWithSource:asStr];
-	[trashFilesAS executeAndReturnError:&asError];
+	NSAppleEventDescriptor *ed = [trashFilesAS executeAndReturnError:&asError];
 	[trashFilesAS release];
 	
-	if (asError == nil)
-		return noErr;
-	else
+	if (ed != nil)
 	{
-		PrintfErr(@"AppleScript error: %@\n", asError);
-		return kHGAppleScriptError;
+		if ([ed numberOfItems] == 0)
+			return kHGUserCancelledError; // this is an informed guess
+		if (asError == nil)
+			return noErr;
 	}
+	
+	PrintfErr(@"AppleScript error: %@\n", asError);
+	return kHGAppleScriptError;
 }
 
 
@@ -345,7 +350,7 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	NSMutableArray *restrictedFiles = [NSMutableArray arrayWithCapacity:argc];
+	NSMutableArray *restrictedPaths = [NSMutableArray arrayWithCapacity:argc];
 	
 	int i;
 	for (i = optind; i < argc; i++)
@@ -360,16 +365,23 @@ int main(int argc, char *argv[])
 		
 		OSStatus status = moveFileToTrash(path);
 		if (status == afpAccessDenied)
-			[restrictedFiles addObject:path];
+			[restrictedPaths addObject:path];
 		else if (status != noErr)
 		{
 			exitValue = 1;
-			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
+			PrintfErr(@"Error: can not trash: %@ (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
 	
-	if ([restrictedFiles count] > 0)
-		askFinderToMoveFilesToTrash(restrictedFiles);
+	if ([restrictedPaths count] > 0)
+	{
+		OSStatus status = askFinderToMoveFilesToTrash(restrictedPaths);
+		if (status == kHGUserCancelledError)
+		{
+			for (NSString *path in restrictedPaths)
+				PrintfErr(@"Error: authentication was cancelled: %@\n", path);
+		}
+	}
 	
 	
 cleanUpAndExit:
