@@ -34,6 +34,7 @@ THE SOFTWARE.
 #import <libgen.h>
 #import "Finder.h"
 
+#define kHGAppleScriptError		-10001
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 5;
@@ -115,10 +116,9 @@ void checkForRoot()
 
 int emptyTrash(BOOL securely)
 {
-	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-	id trash = [finder performSelector:@selector(trash)];
+	FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
 	
-	NSUInteger trashItemsCount = [[trash items] count];
+	NSUInteger trashItemsCount = [[finder.trash items] count];
 	if (trashItemsCount == 0)
 	{
 		Printf(@"The trash is already empty.\n");
@@ -143,18 +143,16 @@ int emptyTrash(BOOL securely)
 	if (inputChar != 'y' && inputChar != 'Y')
 		return 1;
 	
-	[trash setWarnsBeforeEmptying:NO];
-	[trash emptySecurity:securely];
+	[finder.trash setWarnsBeforeEmptying:NO];
+	[finder.trash emptySecurity:securely];
 	
 	return 0;
 }
 
 void listTrashContents()
 {
-	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-	id trash = [finder performSelector:@selector(trash)];
-	
-	for (id item in [trash items])
+	FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	for (id item in [finder.trash items])
 	{
 		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
 	}
@@ -186,12 +184,11 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 	
 	if ([filePaths count] == 1)
 	{
-		SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-		[finder performSelector:@selector(activate)];
-		id items = [finder performSelector:@selector(items)];
+		FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+		[finder activate];
 		NSString *absPath = getAbsolutePath([filePaths objectAtIndex:0]);
 		NSURL *url = [NSURL fileURLWithPath:absPath];
-		[[items objectAtLocation:url] performSelector:@selector(delete)];
+		[[[finder items] objectAtLocation:url] delete];
 		return noErr;
 	}
 	
@@ -225,7 +222,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 	else
 	{
 		PrintfErr(@"AppleScript error: %@\n", asError);
-		return noErr;
+		return kHGAppleScriptError;
 	}
 }
 
