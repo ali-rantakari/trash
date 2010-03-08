@@ -94,6 +94,23 @@ void PrintfErr(NSString *aStr, ...)
 
 
 
+void checkForRoot()
+{
+	if (getuid() == 0)
+	{
+		Printf(@"You seem to be running as root. Any files trashed\n");
+		Printf(@"as root will be moved to root's trash folder instead\n");
+		Printf(@"of your trash folder. Are you sure you want to continue?\n");
+		Printf(@"[y/N]: ");
+		char inputChar;
+		scanf("%s&*c",&inputChar);
+		
+		if (inputChar != 'y' && inputChar != 'Y')
+			exit(0);
+	}
+}
+
+
 
 int emptyTrash(BOOL securely)
 {
@@ -142,6 +159,35 @@ void listTrashContents()
 	}
 }
 
+
+NSString *getAbsolutePath(NSString *filePath)
+{
+	NSString *parentDirPath = nil;
+	if (![filePath hasPrefix:@"/"]) // relative path
+	{
+		NSString *currentPath = [NSString stringWithUTF8String:getcwd(NULL,0)];
+		parentDirPath = [currentPath stringByAppendingPathComponent:[filePath stringByDeletingLastPathComponent]];
+		parentDirPath = [parentDirPath stringByStandardizingPath];
+	}
+	else // already absolute -- we just want to standardize without following possible leaf symlink
+		parentDirPath = [[filePath stringByDeletingLastPathComponent] stringByStandardizingPath];
+	
+	return [parentDirPath stringByAppendingPathComponent:[filePath lastPathComponent]];
+}
+
+
+OSStatus askFinderToMoveFileToTrash(NSString *filePath)
+{
+	NSString *absPath = getAbsolutePath(filePath);
+	NSURL *url = [NSURL fileURLWithPath:absPath];
+	
+	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	[finder performSelector:@selector(activate)];
+	id items = [finder performSelector:@selector(items)];
+	[[items objectAtLocation:url] performSelector:@selector(delete)];
+	
+	return noErr;
+}
 
 
 OSStatus moveFileToTrash(NSString *filePath)
@@ -215,6 +261,8 @@ int main(int argc, char *argv[])
 	
 	myBasename = basename(argv[0]);
 	
+	checkForRoot();
+	
 	if (argc == 1)
 	{
 		printUsage();
@@ -246,7 +294,6 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	
 	if (arg_list || arg_empty || arg_emptySecurely)
 	{
 		if (arg_list)
@@ -264,7 +311,7 @@ int main(int argc, char *argv[])
 	int i;
 	for (i = optind; i < argc; i++)
 	{
-		// Note: don't standardize the path! we don't want to expand symlinks.
+		// Note: don't standardize the path! we don't want to expand leaf symlinks.
 		NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
 		if (path == nil)
 		{
@@ -273,6 +320,9 @@ int main(int argc, char *argv[])
 		}
 		
 		OSStatus status = moveFileToTrash(path);
+		if (status == afpAccessDenied)
+			status = askFinderToMoveFileToTrash(path);
+		
 		if (status != noErr)
 		{
 			exitValue = 1;
