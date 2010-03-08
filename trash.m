@@ -146,7 +146,7 @@ void listTrashContents()
 
 OSStatus moveFileToTrash(NSString *filePath)
 {
-	// We use FSMoveObjectToTrashSync() directly instead of
+	// We use FSPathMoveObjectToTrashSync() directly instead of
 	// using NSWorkspace's performFileOperation:... (which
 	// uses FSMoveObjectToTrashSync()) because the former
 	// returns us an OSStatus describing a possible error
@@ -157,15 +157,11 @@ OSStatus moveFileToTrash(NSString *filePath)
 	if (filePath == nil)
 		return bdNamErr;
 	
-	FSRef fsRef;
-	FSPathMakeRefWithOptions(
-		(const UInt8 *)[filePath fileSystemRepresentation],
-		kFSPathMakeRefDoNotFollowLeafSymlink,
-		&fsRef,
-		NULL // Boolean *isDirectory
+	OSStatus ret = FSPathMoveObjectToTrashSync(
+		[filePath fileSystemRepresentation],
+		NULL, // char **targetPath
+		kFSFileOperationDefaultOptions
 		);
-	
-	OSStatus ret = FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
 	VerbosePrintf(@"%@\n", filePath);
 	return ret;
 }
@@ -265,7 +261,6 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	BOOL atLeastOneValidPath = NO;
 	int i;
 	for (i = optind; i < argc; i++)
 	{
@@ -278,17 +273,12 @@ int main(int argc, char *argv[])
 		}
 		
 		OSStatus status = moveFileToTrash(path);
-		if (status == noErr)
-			atLeastOneValidPath = YES;
-		else
+		if (status != noErr)
 		{
 			exitValue = 1;
 			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
-	
-	if (!atLeastOneValidPath)
-		printUsage();
 	
 	
 cleanUpAndExit:
