@@ -179,19 +179,54 @@ NSString *getAbsolutePath(NSString *filePath)
 
 OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 {
-	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-	[finder performSelector:@selector(activate)];
-	id items = [finder performSelector:@selector(items)];
+	// If we only have one file, we'll use the Scripting
+	// Bridge instead of construction an AppleScript string,
+	// compiling and executing it (which is slllow).
+	// 
 	
+	if ([filePaths count] == 1)
+	{
+		SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+		[finder performSelector:@selector(activate)];
+		id items = [finder performSelector:@selector(items)];
+		NSString *absPath = getAbsolutePath([filePaths objectAtIndex:0]);
+		NSURL *url = [NSURL fileURLWithPath:absPath];
+		[[items objectAtLocation:url] performSelector:@selector(delete)];
+		return noErr;
+	}
+	
+	// More than one file to trash:
+	// Construct AppleScript to trash all of the given files
+	// at once (so that Finder would only ask for authentication
+	// once instead of for each one separately). I don't know
+	// how to do this with the Scripting Bridge.
+	// 
+	
+	NSMutableString *asStr = [NSMutableString stringWithString:@"tell application \"Finder\"\nactivate\ndelete every item of {"];
+	
+	NSMutableArray *fileASList = [NSMutableArray arrayWithCapacity:[filePaths count]];
 	for (NSString *filePath in filePaths)
 	{
 		NSString *absPath = getAbsolutePath(filePath);
-		NSURL *url = [NSURL fileURLWithPath:absPath];
-		[[items objectAtLocation:url] performSelector:@selector(delete)];
-		VerbosePrintf(@"%@\n", url);
+		[fileASList addObject:[NSString stringWithFormat:@"(POSIX file \"%@\")", absPath]];
 	}
 	
-	return noErr;
+	[asStr appendString:[fileASList componentsJoinedByString:@", "]];
+	[asStr appendString:@"}\nend tell"];
+	
+	// execute
+	NSDictionary *asError = nil;
+	NSAppleScript *trashFilesAS = [[NSAppleScript alloc] initWithSource:asStr];
+	[trashFilesAS executeAndReturnError:&asError];
+	[trashFilesAS release];
+	
+	if (asError == nil)
+		return noErr;
+	else
+	{
+		PrintfErr(@"AppleScript error: %@\n", asError);
+		return noErr;
+	}
 }
 
 
