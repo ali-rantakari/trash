@@ -32,6 +32,7 @@ THE SOFTWARE.
 #include <AppKit/AppKit.h>
 #include <ScriptingBridge/ScriptingBridge.h>
 #import <libgen.h>
+#import "Finder.h"
 
 
 const int VERSION_MAJOR = 0;
