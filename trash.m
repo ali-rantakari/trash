@@ -177,15 +177,19 @@ NSString *getAbsolutePath(NSString *filePath)
 }
 
 
-OSStatus askFinderToMoveFileToTrash(NSString *filePath)
+OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 {
-	NSString *absPath = getAbsolutePath(filePath);
-	NSURL *url = [NSURL fileURLWithPath:absPath];
-	
 	SBApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
 	[finder performSelector:@selector(activate)];
 	id items = [finder performSelector:@selector(items)];
-	[[items objectAtLocation:url] performSelector:@selector(delete)];
+	
+	for (NSString *filePath in filePaths)
+	{
+		NSString *absPath = getAbsolutePath(filePath);
+		NSURL *url = [NSURL fileURLWithPath:absPath];
+		[[items objectAtLocation:url] performSelector:@selector(delete)];
+		VerbosePrintf(@"%@\n", url);
+	}
 	
 	return noErr;
 }
@@ -309,6 +313,8 @@ int main(int argc, char *argv[])
 	}
 	
 	
+	NSMutableArray *restrictedFiles = [NSMutableArray arrayWithCapacity:argc];
+	
 	int i;
 	for (i = optind; i < argc; i++)
 	{
@@ -322,14 +328,16 @@ int main(int argc, char *argv[])
 		
 		OSStatus status = moveFileToTrash(path);
 		if (status == afpAccessDenied)
-			status = askFinderToMoveFileToTrash(path);
-		
-		if (status != noErr)
+			[restrictedFiles addObject:path];
+		else if (status != noErr)
 		{
 			exitValue = 1;
 			PrintfErr(@"Error: can not delete: %@ (%@)\n", path, osStatusToErrorString(status));
 		}
 	}
+	
+	if ([restrictedFiles count] > 0)
+		askFinderToMoveFilesToTrash(restrictedFiles);
 	
 	
 cleanUpAndExit:
