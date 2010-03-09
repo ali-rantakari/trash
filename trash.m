@@ -40,7 +40,7 @@ THE SOFTWARE.
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 6;
-const int VERSION_BUILD = 2;
+const int VERSION_BUILD = 3;
 
 BOOL arg_verbose = NO;
 
@@ -170,8 +170,7 @@ NSString *getAbsolutePath(NSString *filePath)
 	if (![filePath hasPrefix:@"/"]) // relative path
 	{
 		NSString *currentPath = [NSString stringWithUTF8String:getcwd(NULL,0)];
-		parentDirPath = [currentPath stringByAppendingPathComponent:[filePath stringByDeletingLastPathComponent]];
-		parentDirPath = [parentDirPath stringByStandardizingPath];
+		parentDirPath = [[currentPath stringByAppendingPathComponent:[filePath stringByDeletingLastPathComponent]] stringByStandardizingPath];
 	}
 	else // already absolute -- we just want to standardize without following possible leaf symlink
 		parentDirPath = [[filePath stringByDeletingLastPathComponent] stringByStandardizingPath];
@@ -210,6 +209,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 	for (NSString *filePath in filePaths)
 	{
 		NSString *absPath = getAbsolutePath(filePath);
+		absPath = [absPath stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
 		[fileASList addObject:[NSString stringWithFormat:@"(POSIX file \"%@\")", absPath]];
 	}
 	
