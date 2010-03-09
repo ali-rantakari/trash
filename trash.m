@@ -337,18 +337,15 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	if (arg_list || arg_empty || arg_emptySecurely)
+	if (arg_list)
 	{
-		if (arg_list)
-		{
-			listTrashContents();
-			return 0;
-		}
-		else if (arg_empty || arg_emptySecurely)
-		{
-			OSStatus status = emptyTrash(arg_emptySecurely);
-			return (status == noErr) ? 0 : 1;
-		}
+		listTrashContents();
+		return 0;
+	}
+	else if (arg_empty || arg_emptySecurely)
+	{
+		OSStatus status = emptyTrash(arg_emptySecurely);
+		return (status == noErr) ? 0 : 1;
 	}
 	
 	
