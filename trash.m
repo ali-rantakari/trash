@@ -237,7 +237,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 
 OSStatus moveFileToTrash(NSString *filePath)
 {
-	// We use FSPathMoveObjectToTrashSync() directly instead of
+	// We use FSMoveObjectToTrashSync() directly instead of
 	// using NSWorkspace's performFileOperation:... (which
 	// uses FSMoveObjectToTrashSync()) because the former
 	// returns us an OSStatus describing a possible error
@@ -248,11 +248,14 @@ OSStatus moveFileToTrash(NSString *filePath)
 	if (filePath == nil)
 		return bdNamErr;
 	
-	OSStatus ret = FSPathMoveObjectToTrashSync(
-		[filePath fileSystemRepresentation],
-		NULL, // char **targetPath
-		kFSFileOperationDefaultOptions
+	FSRef fsRef;
+	FSPathMakeRefWithOptions(
+		(const UInt8 *)[filePath fileSystemRepresentation],
+		kFSPathMakeRefDoNotFollowLeafSymlink,
+		&fsRef,
+		NULL // Boolean *isDirectory
 		);
+	OSStatus ret = FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
 	VerbosePrintf(@"%@\n", filePath);
 	return ret;
 }
