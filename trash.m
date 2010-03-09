@@ -39,7 +39,7 @@ THE SOFTWARE.
 #define kHGUserCancelledError	9998
 
 const int VERSION_MAJOR = 0;
-const int VERSION_MINOR = 5;
+const int VERSION_MINOR = 6;
 const int VERSION_BUILD = 0;
 
 BOOL arg_verbose = NO;
@@ -290,7 +290,7 @@ void printUsage()
 	Printf(@"  -s  Securely empty the trash (asks for confirmation)\n");
 	Printf(@"\n");
 	Printf(@"Version %@\n", versionNumberStr());
-	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/\n");
+	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/trash\n");
 	Printf(@"\n");
 }
 
