@@ -116,7 +116,7 @@ void checkForRoot()
 
 
 
-int emptyTrash(BOOL securely)
+OSStatus emptyTrash(BOOL securely)
 {
 	FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
 	
@@ -124,18 +124,19 @@ int emptyTrash(BOOL securely)
 	if (trashItemsCount == 0)
 	{
 		Printf(@"The trash is already empty.\n");
-		return 0;
+		return noErr;
 	}
 	
 	BOOL plural = (trashItemsCount > 1);
 	Printf(
-		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n",
+		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n%@",
 		plural?@"are":@"is",
 		trashItemsCount,
 		plural?@"s":@"",
 		securely?@" (and securely)":@"",
 		plural?@"these":@"this",
-		plural?@"s":@""
+		plural?@"s":@"",
+		securely?@"(secure empty trash will take a long while so be prepared to wait)\n":@""
 		);
 	
 	Printf(@"[y/N]: ");
@@ -143,12 +144,12 @@ int emptyTrash(BOOL securely)
 	scanf("%s&*c",&inputChar);
 	
 	if (inputChar != 'y' && inputChar != 'Y')
-		return 1;
+		return kHGUserCancelledError;
 	
 	finder.trash.warnsBeforeEmptying = NO;
 	[finder.trash emptySecurity:securely];
 	
-	return 0;
+	return noErr;
 }
 
 void listTrashContents()
@@ -296,13 +297,11 @@ void printUsage()
 
 
 
-int exitValue = 0;
-#define EXIT(x)		{ exitValue = x; goto cleanUpAndExit; }
-
 int main(int argc, char *argv[])
 {
 	NSAutoreleasePool *autoReleasePool = [[NSAutoreleasePool alloc] init];
 	
+	int exitValue = 0;
 	myBasename = basename(argv[0]);
 	
 	checkForRoot();
@@ -310,7 +309,7 @@ int main(int argc, char *argv[])
 	if (argc == 1)
 	{
 		printUsage();
-		EXIT(0);
+		return 0;
 	}
 	
 	BOOL arg_list = NO;
@@ -333,7 +332,7 @@ int main(int argc, char *argv[])
 			case '?':
 			default:
 				printUsage();
-				EXIT(1);
+				return 1;
 		}
 	}
 	
@@ -343,11 +342,12 @@ int main(int argc, char *argv[])
 		if (arg_list)
 		{
 			listTrashContents();
-			EXIT(0);
+			return 0;
 		}
 		else if (arg_empty || arg_emptySecurely)
 		{
-			EXIT(emptyTrash(arg_emptySecurely));
+			OSStatus status = emptyTrash(arg_emptySecurely);
+			return (status == noErr) ? 0 : 1;
 		}
 	}
 	
@@ -386,7 +386,6 @@ int main(int argc, char *argv[])
 	}
 	
 	
-cleanUpAndExit:
 	[autoReleasePool release];
 	return exitValue;
 }
