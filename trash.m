@@ -145,7 +145,7 @@ int emptyTrash(BOOL securely)
 	if (inputChar != 'y' && inputChar != 'Y')
 		return 1;
 	
-	[finder.trash setWarnsBeforeEmptying:NO];
+	finder.trash.warnsBeforeEmptying = NO;
 	[finder.trash emptySecurity:securely];
 	
 	return 0;
@@ -161,6 +161,8 @@ void listTrashContents()
 }
 
 
+// return absolute path for file *without* following possible
+// leaf symlink
 NSString *getAbsolutePath(NSString *filePath)
 {
 	NSString *parentDirPath = nil;
@@ -283,9 +285,9 @@ void printUsage()
 	Printf(@"  Options:\n");
 	Printf(@"\n");
 	Printf(@"  -v  Be verbose; show files as they are deleted\n");
-	Printf(@"  -l  List items currently in trash\n");
-	Printf(@"  -e  Empty trash (asks for confirmation)\n");
-	Printf(@"  -s  Empty trash securely (asks for confirmation)\n");
+	Printf(@"  -l  List items currently in the trash\n");
+	Printf(@"  -e  Empty the trash (asks for confirmation)\n");
+	Printf(@"  -s  Securely empty the trash (asks for confirmation)\n");
 	Printf(@"\n");
 	Printf(@"Version %@\n", versionNumberStr());
 	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/\n");
