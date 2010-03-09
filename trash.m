@@ -183,7 +183,7 @@ NSString *getAbsolutePath(NSString *filePath)
 OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 {
 	// If we only have one file, we'll use the Scripting
-	// Bridge instead of construction an AppleScript string,
+	// Bridge instead of constructing an AppleScript string,
 	// compiling and executing it (which is slllow).
 	// 
 	
