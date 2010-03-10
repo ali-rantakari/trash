@@ -39,8 +39,8 @@ THE SOFTWARE.
 #define kHGUserCancelledError	9998
 
 const int VERSION_MAJOR = 0;
-const int VERSION_MINOR = 6;
-const int VERSION_BUILD = 4;
+const int VERSION_MINOR = 7;
+const int VERSION_BUILD = 0;
 
 BOOL arg_verbose = NO;
 
@@ -105,6 +105,7 @@ void checkForRoot()
 		Printf(@"You seem to be running as root. Any files trashed\n");
 		Printf(@"as root will be moved to root's trash folder instead\n");
 		Printf(@"of your trash folder. Are you sure you want to continue?\n");
+		
 		Printf(@"[y/N]: ");
 		char inputChar;
 		scanf("%s&*c",&inputChar);
@@ -125,6 +126,16 @@ FinderApplication *getFinderApp()
 }
 
 
+
+void listTrashContents()
+{
+	FinderApplication *finder = getFinderApp();
+	for (id item in [finder.trash items])
+	{
+		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
+	}
+}
+
 OSStatus emptyTrash(BOOL securely)
 {
 	FinderApplication *finder = getFinderApp();
@@ -138,22 +149,34 @@ OSStatus emptyTrash(BOOL securely)
 	
 	BOOL plural = (trashItemsCount > 1);
 	Printf(
-		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n%@",
+		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n",
 		plural?@"are":@"is",
 		trashItemsCount,
 		plural?@"s":@"",
 		securely?@" (and securely)":@"",
 		plural?@"these":@"this",
-		plural?@"s":@"",
-		securely?@"(secure empty trash will take a long while so be prepared to wait)\n":@""
+		plural?@"s":@""
 		);
+	Printf(@"(y = permanently empty the trash, l = list items in trash, n = don't empty)\n");
 	
-	Printf(@"[y/N]: ");
-	char inputChar;
-	scanf("%s&*c",&inputChar);
+	for (;;)
+	{
+		Printf(@"[y/l/N]: ");
+		char inputChar;
+		scanf("%s&*c",&inputChar);
+		
+		if (inputChar == 'l' || inputChar == 'L')
+		{
+			listTrashContents();
+			continue;
+		}
+		else if (inputChar != 'y' && inputChar != 'Y')
+			return kHGUserCancelledError;
+		break;
+	}
 	
-	if (inputChar != 'y' && inputChar != 'Y')
-		return kHGUserCancelledError;
+	if (securely)
+		Printf(@"(secure empty trash will take a long while so please be patient...)\n");
 	
 	finder.trash.warnsBeforeEmptying = NO;
 	[finder.trash emptySecurity:securely];
@@ -161,14 +184,6 @@ OSStatus emptyTrash(BOOL securely)
 	return noErr;
 }
 
-void listTrashContents()
-{
-	FinderApplication *finder = getFinderApp();
-	for (id item in [finder.trash items])
-	{
-		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
-	}
-}
 
 
 // return absolute path for file *without* following possible
