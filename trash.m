@@ -40,7 +40,7 @@ THE SOFTWARE.
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 6;
-const int VERSION_BUILD = 3;
+const int VERSION_BUILD = 4;
 
 BOOL arg_verbose = NO;
 
@@ -115,10 +115,19 @@ void checkForRoot()
 }
 
 
+FinderApplication *getFinderApp()
+{
+	static FinderApplication *cached = nil;
+	if (cached != nil)
+		return cached;
+	cached = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	return cached;
+}
+
 
 OSStatus emptyTrash(BOOL securely)
 {
-	FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	FinderApplication *finder = getFinderApp();
 	
 	NSUInteger trashItemsCount = [[finder.trash items] count];
 	if (trashItemsCount == 0)
@@ -154,7 +163,7 @@ OSStatus emptyTrash(BOOL securely)
 
 void listTrashContents()
 {
-	FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
+	FinderApplication *finder = getFinderApp();
 	for (id item in [finder.trash items])
 	{
 		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
@@ -179,59 +188,90 @@ NSString *getAbsolutePath(NSString *filePath)
 }
 
 
+ProcessSerialNumber getFinderPSN()
+{
+	ProcessSerialNumber psn = {0, 0};
+	
+	NSEnumerator *appsEnumerator = [[[NSWorkspace sharedWorkspace] launchedApplications] objectEnumerator];
+	NSDictionary *appInfoDict = nil;
+	while ((appInfoDict = [appsEnumerator nextObject]))
+	{
+		if ([[appInfoDict objectForKey:@"NSApplicationBundleIdentifier"] isEqualToString:@"com.apple.finder"])
+		{
+			psn.highLongOfPSN = [[appInfoDict objectForKey:@"NSApplicationProcessSerialNumberHigh"] longValue];
+			psn.lowLongOfPSN  = [[appInfoDict objectForKey:@"NSApplicationProcessSerialNumberLow"] longValue];
+			break;
+		}
+	}
+	
+	return psn;
+}
+
+
 OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 {
-	// If we only have one file, we'll use the Scripting
-	// Bridge instead of constructing an AppleScript string,
-	// compiling and executing it (which is slllow).
+	// Here we manually send Finder the Apple Event that tells it
+	// to trash the specified files all at once. This is roughly
+	// equivalent to the following AppleScript:
+	// 
+	//   tell application "Finder" to delete every item of
+	//     {(POSIX file "/path/one"), (POSIX file "/path/two")}
+	// 
+	// First of all, this doesn't seem to be possible with the
+	// Scripting Bridge (the -delete method is only available
+	// for individual items there, and we don't want to loop
+	// through items, calling that method for each one because
+	// then Finder would prompt for authentication separately
+	// for each one).
+	// 
+	// The second approach I took was to construct an AppleScript
+	// string that looked like the example above, but this
+	// seemed a bit volatile. 'has' suggested in a comment on
+	// my blog that I could do something like this instead,
+	// and I thought it was a good idea. Seems to work just
+	// fine and this is noticeably faster this way than generating
+	// and executing some AppleScript was. I also don't have
+	// to worry about input sanitization anymore.
 	// 
 	
-	if ([filePaths count] == 1)
-	{
-		FinderApplication *finder = [SBApplication applicationWithBundleIdentifier:@"com.apple.Finder"];
-		[finder activate];
-		NSString *absPath = getAbsolutePath([filePaths objectAtIndex:0]);
-		NSURL *url = [NSURL fileURLWithPath:absPath];
-		[[[finder items] objectAtLocation:url] delete];
-		return noErr;
-	}
-	
-	// More than one file to trash:
-	// Construct AppleScript to trash all of the given files
-	// at once (so that Finder would only ask for authentication
-	// once instead of for each one separately). I don't know
-	// how to do this with the Scripting Bridge.
-	// 
-	
-	NSMutableString *asStr = [NSMutableString stringWithString:@"tell application \"Finder\"\nactivate\ndelete every item of {"];
-	
-	NSMutableArray *fileASList = [NSMutableArray arrayWithCapacity:[filePaths count]];
+	// generate list descriptor containting the file URLs
+	NSAppleEventDescriptor *urlListDescr = [NSAppleEventDescriptor listDescriptor];
+	NSInteger i = 1;
 	for (NSString *filePath in filePaths)
 	{
-		NSString *absPath = getAbsolutePath(filePath);
-		absPath = [absPath stringByReplacingOccurrencesOfString:@"\"" withString:@"\\\""];
-		[fileASList addObject:[NSString stringWithFormat:@"(POSIX file \"%@\")", absPath]];
+		NSURL *url = [NSURL fileURLWithPath:getAbsolutePath(filePath)];
+		NSAppleEventDescriptor *descr = [NSAppleEventDescriptor
+			descriptorWithDescriptorType:'furl'
+			data:[[url absoluteString] dataUsingEncoding:NSUTF8StringEncoding]
+			];
+		[urlListDescr insertDescriptor:descr atIndex:i++];
 	}
 	
-	[asStr appendString:[fileASList componentsJoinedByString:@", "]];
-	[asStr appendString:@"}\nend tell"];
+	// generate the 'top-level' "delete" descriptor
+	ProcessSerialNumber finderPSN = getFinderPSN();
+	NSAppleEventDescriptor *targetDesc = [NSAppleEventDescriptor
+		descriptorWithDescriptorType:'psn '
+		bytes:&finderPSN
+		length:sizeof(finderPSN)
+		];
+	NSAppleEventDescriptor *descriptor = [NSAppleEventDescriptor
+		appleEventWithEventClass:'core'
+		eventID:'delo'
+		targetDescriptor:targetDesc
+		returnID:kAutoGenerateReturnID
+		transactionID:kAnyTransactionID
+		];
 	
-	// execute
-	NSDictionary *asError = nil;
-	NSAppleScript *trashFilesAS = [[NSAppleScript alloc] initWithSource:asStr];
-	NSAppleEventDescriptor *ed = [trashFilesAS executeAndReturnError:&asError];
-	[trashFilesAS release];
+	// add the list of file URLs as argument
+	[descriptor setDescriptor:urlListDescr forKeyword:'----'];
 	
-	if (ed != nil)
-	{
-		if ([ed numberOfItems] == 0)
-			return kHGUserCancelledError; // this is an informed guess
-		if (asError == nil)
-			return noErr;
-	}
+	// bring Finder to foreground
+	[getFinderApp() activate];
 	
-	PrintfErr(@"AppleScript error: %@\n", asError);
-	return kHGAppleScriptError;
+	// send the Apple Event synchronously
+	AppleEvent reply;
+	OSStatus sendErr = AESendMessage([descriptor aeDesc], &reply, kAEWaitReply, kAEDefaultTimeout);
+	return sendErr;
 }
 
 
