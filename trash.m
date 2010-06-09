@@ -35,8 +35,8 @@ THE SOFTWARE.
 #import "Finder.h"
 
 // (Apple reserves OSStatus values outside the range 1000-9999 inclusive)
-#define kHGAppleScriptError		9999
-#define kHGUserCancelledError	9998
+#define kHGAppleScriptError			9999
+#define kHGNotAllFilesTrashedError	9998
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 7;
@@ -171,7 +171,7 @@ OSStatus emptyTrash(BOOL securely)
 			continue;
 		}
 		else if (inputChar != 'y' && inputChar != 'Y')
-			return kHGUserCancelledError;
+			return kHGNotAllFilesTrashedError;
 		break;
 	}
 	
@@ -296,8 +296,17 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 		return getReplyErr;
 	
 	NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
-	if ([replyDesc numberOfItems] == 0)
-		return kHGUserCancelledError;
+	/*
+	Printf(@"typeAEList = %i\n", typeAEList);
+	Printf(@"typeAERecord = %i\n", typeAERecord);
+	Printf(@"[replyDesc descriptorType] = %i\n", [replyDesc descriptorType]);
+	Printf(@"[replyDesc numberOfItems] = %i\n", [replyDesc numberOfItems]);
+	Printf(@"[filePaths count] = %i\n", [filePaths count]);
+	Printf(@"%@\n", replyDesc);
+	*/
+	if ([replyDesc numberOfItems] == 0
+		|| ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != [filePaths count])))
+		return kHGNotAllFilesTrashedError;
 	
 	return noErr;
 }
@@ -420,6 +429,9 @@ int main(int argc, char *argv[])
 		return (status == noErr) ? 0 : 1;
 	}
 	
+	// TODO:
+	// always separate restricted and other items and call askFinderToMoveFilesToTrash() for both groups separately
+	// because if the user cancels the authentication any files listed after the first restricted item are not trashed at all
 	
 	BOOL bringFinderToFront = NO;
 	NSMutableArray *pathsForFinder = [NSMutableArray arrayWithCapacity:argc];
@@ -437,6 +449,13 @@ int main(int argc, char *argv[])
 		
 		if (arg_useFinderForAll)
 		{
+			BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:path];
+			if (!exists)
+			{
+				PrintfErr(@"Error: path does not exist: %s\n", argv[i]);
+				continue;
+			}
+			
 			if (!bringFinderToFront)
 			{
 				BOOL deletable = [[NSFileManager defaultManager] isDeletableFileAtPath:path];
@@ -466,10 +485,10 @@ int main(int argc, char *argv[])
 	if ([pathsForFinder count] > 0)
 	{
 		OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, bringFinderToFront);
-		if (status == kHGUserCancelledError)
+		if (status == kHGNotAllFilesTrashedError)
 		{
 			exitValue = 1;
-			PrintfErr(@"Error: authentication was cancelled\n");
+			PrintfErr(@"Error: some files were not moved to trash (authentication cancelled?)\n");
 		}
 		else if (status != noErr)
 		{
