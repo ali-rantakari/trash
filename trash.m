@@ -40,7 +40,7 @@ THE SOFTWARE.
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 7;
-const int VERSION_BUILD = 0;
+const int VERSION_BUILD = 1;
 
 BOOL arg_verbose = NO;
 
@@ -223,7 +223,7 @@ ProcessSerialNumber getFinderPSN()
 }
 
 
-OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
+OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront)
 {
 	// Here we manually send Finder the Apple Event that tells it
 	// to trash the specified files all at once. This is roughly
@@ -280,13 +280,26 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths)
 	// add the list of file URLs as argument
 	[descriptor setDescriptor:urlListDescr forKeyword:'----'];
 	
-	// bring Finder to foreground
-	[getFinderApp() activate];
+	if (bringFinderToFront)
+		[getFinderApp() activate];
 	
 	// send the Apple Event synchronously
-	AppleEvent reply;
-	OSStatus sendErr = AESendMessage([descriptor aeDesc], &reply, kAEWaitReply, kAEDefaultTimeout);
-	return sendErr;
+	AppleEvent replyEvent;
+	OSStatus sendErr = AESendMessage([descriptor aeDesc], &replyEvent, kAEWaitReply, kAEDefaultTimeout);
+	if (sendErr != noErr)
+		return sendErr;
+	
+	// check reply in order to determine return value
+	AEDesc replyAEDesc;
+	OSStatus getReplyErr = AEGetParamDesc(&replyEvent, keyDirectObject, typeWildCard, &replyAEDesc);
+	if (getReplyErr != noErr)
+		return getReplyErr;
+	
+	NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
+	if ([replyDesc numberOfItems] == 0)
+		return kHGUserCancelledError;
+	
+	return noErr;
 }
 
 
@@ -373,6 +386,7 @@ int main(int argc, char *argv[])
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
+	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
 	
 	int opt;
 	while ((opt = getopt(argc, argv, "vles")) != EOF)
@@ -407,7 +421,8 @@ int main(int argc, char *argv[])
 	}
 	
 	
-	NSMutableArray *restrictedPaths = [NSMutableArray arrayWithCapacity:argc];
+	BOOL bringFinderToFront = NO;
+	NSMutableArray *pathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 	
 	int i;
 	for (i = optind; i < argc; i++)
@@ -420,9 +435,27 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
+		if (arg_useFinderForAll)
+		{
+			if (!bringFinderToFront)
+			{
+				BOOL deletable = [[NSFileManager defaultManager] isDeletableFileAtPath:path];
+				BOOL writable = [[NSFileManager defaultManager] isWritableFileAtPath:path];
+				
+				if (!(deletable && writable))
+					bringFinderToFront = YES;
+			}
+			
+			[pathsForFinder addObject:path];
+			continue;
+		}
+		
 		OSStatus status = moveFileToTrash(path);
 		if (status == afpAccessDenied)
-			[restrictedPaths addObject:path];
+		{
+			bringFinderToFront = YES;
+			[pathsForFinder addObject:path];
+		}
 		else if (status != noErr)
 		{
 			exitValue = 1;
@@ -430,13 +463,18 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	if ([restrictedPaths count] > 0)
+	if ([pathsForFinder count] > 0)
 	{
-		OSStatus status = askFinderToMoveFilesToTrash(restrictedPaths);
+		OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, bringFinderToFront);
 		if (status == kHGUserCancelledError)
 		{
-			for (NSString *path in restrictedPaths)
-				PrintfErr(@"Error: authentication was cancelled: %@\n", path);
+			exitValue = 1;
+			PrintfErr(@"Error: authentication was cancelled\n");
+		}
+		else if (status != noErr)
+		{
+			exitValue = 1;
+			PrintfErr(@"Error: error #%i\n", status);
 		}
 	}
 	

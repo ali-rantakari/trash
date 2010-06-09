@@ -17,6 +17,12 @@ DEPLOYMENT_INCLUDES_DIR="./deployment-files"
 COMPILER="/Developer/usr/bin/clang"
 #COMPILER="gcc"
 
+ifdef USE_SYSTEM_API
+	ALWAYS_USE_FINDER=NO
+else
+	ALWAYS_USE_FINDER=YES
+endif
+
 
 
 all: trash
@@ -39,7 +45,7 @@ trash: trash.m
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -o $@ trash.m
+	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -D ALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ trash.m
 
 
 
