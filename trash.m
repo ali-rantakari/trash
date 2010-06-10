@@ -296,14 +296,6 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 		return getReplyErr;
 	
 	NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
-	/*
-	Printf(@"typeAEList = %i\n", typeAEList);
-	Printf(@"typeAERecord = %i\n", typeAERecord);
-	Printf(@"[replyDesc descriptorType] = %i\n", [replyDesc descriptorType]);
-	Printf(@"[replyDesc numberOfItems] = %i\n", [replyDesc numberOfItems]);
-	Printf(@"[filePaths count] = %i\n", [filePaths count]);
-	Printf(@"%@\n", replyDesc);
-	*/
 	if ([replyDesc numberOfItems] == 0
 		|| ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != [filePaths count])))
 		return kHGNotAllFilesTrashedError;
@@ -348,6 +340,13 @@ NSString *osStatusToErrorString(OSStatus status)
 	// 
 	return [[NSString stringWithUTF8String:GetMacOSStatusCommentString(status)]
 			stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
+}
+
+
+void verbosePrintPaths(NSArray *arr)
+{
+	for (NSString *path in arr)
+		VerbosePrintf(@"%@\n", path);
 }
 
 
@@ -481,6 +480,9 @@ int main(int argc, char *argv[])
 		OSStatus status = askFinderToMoveFilesToTrash(nonRestrictedPathsForFinder, NO);
 		if (status != noErr)
 			exitValue = 1;
+		else
+			verbosePrintPaths(nonRestrictedPathsForFinder);
+		
 		if (status == kHGNotAllFilesTrashedError)
 			PrintfErr(@"Error: some files were not moved to trash\n");
 		else if (status != noErr)
@@ -492,6 +494,9 @@ int main(int argc, char *argv[])
 		OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
 		if (status != noErr)
 			exitValue = 1;
+		else
+			verbosePrintPaths(restrictedPathsForFinder);
+		
 		if (status == kHGNotAllFilesTrashedError)
 			PrintfErr(@"Error: some files were not moved to trash (authentication cancelled?)\n");
 		else if (status != noErr)
