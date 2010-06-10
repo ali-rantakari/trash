@@ -429,12 +429,11 @@ int main(int argc, char *argv[])
 		return (status == noErr) ? 0 : 1;
 	}
 	
-	// TODO:
-	// always separate restricted and other items and call askFinderToMoveFilesToTrash() for both groups separately
-	// because if the user cancels the authentication any files listed after the first restricted item are not trashed at all
-	
-	BOOL bringFinderToFront = NO;
-	NSMutableArray *pathsForFinder = [NSMutableArray arrayWithCapacity:argc];
+	// Always separate restricted and other items and call askFinderToMoveFilesToTrash() for
+	// both groups separately because if the user cancels the authentication any files listed
+	// after the first restricted item are not trashed at all
+	NSMutableArray *nonRestrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
+	NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 	
 	int i;
 	for (i = optind; i < argc; i++)
@@ -456,25 +455,20 @@ int main(int argc, char *argv[])
 				continue;
 			}
 			
-			if (!bringFinderToFront)
-			{
-				BOOL deletable = [[NSFileManager defaultManager] isDeletableFileAtPath:path];
-				BOOL writable = [[NSFileManager defaultManager] isWritableFileAtPath:path];
-				
-				if (!(deletable && writable))
-					bringFinderToFront = YES;
-			}
+			BOOL deletable = [[NSFileManager defaultManager] isDeletableFileAtPath:path];
+			BOOL writable = [[NSFileManager defaultManager] isWritableFileAtPath:path];
 			
-			[pathsForFinder addObject:path];
+			if (!(deletable && writable))
+				[restrictedPathsForFinder addObject:path];
+			else
+				[nonRestrictedPathsForFinder addObject:path];
+			
 			continue;
 		}
 		
 		OSStatus status = moveFileToTrash(path);
 		if (status == afpAccessDenied)
-		{
-			bringFinderToFront = YES;
-			[pathsForFinder addObject:path];
-		}
+			[restrictedPathsForFinder addObject:path];
 		else if (status != noErr)
 		{
 			exitValue = 1;
@@ -482,19 +476,26 @@ int main(int argc, char *argv[])
 		}
 	}
 	
-	if ([pathsForFinder count] > 0)
+	if ([nonRestrictedPathsForFinder count] > 0)
 	{
-		OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, bringFinderToFront);
+		OSStatus status = askFinderToMoveFilesToTrash(nonRestrictedPathsForFinder, NO);
+		if (status != noErr)
+			exitValue = 1;
 		if (status == kHGNotAllFilesTrashedError)
-		{
-			exitValue = 1;
-			PrintfErr(@"Error: some files were not moved to trash (authentication cancelled?)\n");
-		}
+			PrintfErr(@"Error: some files were not moved to trash\n");
 		else if (status != noErr)
-		{
-			exitValue = 1;
 			PrintfErr(@"Error: error #%i\n", status);
-		}
+	}
+	
+	if ([restrictedPathsForFinder count] > 0)
+	{
+		OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
+		if (status != noErr)
+			exitValue = 1;
+		if (status == kHGNotAllFilesTrashedError)
+			PrintfErr(@"Error: some files were not moved to trash (authentication cancelled?)\n");
+		else if (status != noErr)
+			PrintfErr(@"Error: error #%i\n", status);
 	}
 	
 	
