@@ -37,6 +37,7 @@ Empty the trash. B<trash> asks for confirmation before executing this action. If
 
 Securely empty the trash. B<trash> asks for confirmation before executing this action. If this argument is used, no files need to be specified.
 
+=back
 
 =head1 SEE ALSO
 
