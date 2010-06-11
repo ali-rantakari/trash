@@ -31,7 +31,7 @@ printf "trash executable to: \e[36m${BINDIR}\e[m\n"
 printf "trash man page to: \e[36m${MANDIR}\e[m\n"
 echo
 echo $'We\'ll need administrator rights to install to these locations so \e[33mplease enter your admin password when asked\e[m.'
-echo $'\e[1mPress any key to continue installing or Ctrl-C to cancel.\e[m'
+echo $'\e[1mPress return to continue installing or Ctrl-C to cancel.\e[m'
 read
 echo
 sudo -v
