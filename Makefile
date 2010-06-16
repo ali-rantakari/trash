@@ -14,14 +14,20 @@ VERSIONCHANGELOGFILELOC="$(TEMP_DEPLOYMENT_DIR)/changelog.html"
 GENERALCHANGELOGFILELOC="changelog.html"
 SCP_TARGET=$(shell cat ./deploymentScpTarget)
 DEPLOYMENT_INCLUDES_DIR="./deployment-files"
-COMPILER="/Developer/usr/bin/clang"
-#COMPILER="gcc"
+
+COMPILER_GCC="gcc"
+COMPILER_CLANG="/Developer/usr/bin/clang"
+COMPILER=$(COMPILER_CLANG)
+
 
 ifdef USE_SYSTEM_API
 	ALWAYS_USE_FINDER=NO
 else
 	ALWAYS_USE_FINDER=YES
 endif
+
+
+SOURCE_FILES=trash.m ANSIEscapeHelper.m HGCLIUtils.m HGCLIAutoUpdater.m HGCLIAutoUpdaterDelegate.m TrashAutoUpdaterDelegate.m
 
 
 
@@ -45,8 +51,17 @@ trash: trash.m
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -D ALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ trash.m
+	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -DALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ $(SOURCE_FILES)
 
+#-------------------------------------------------------------------------
+#-------------------------------------------------------------------------
+# run clang static analyzer
+#-------------------------------------------------------------------------
+analyze:
+	@echo
+	@echo ---- Analyzing:
+	@echo ======================================
+	$(COMPILER_CLANG) --analyze $(SOURCE_FILES)
 
 
 #-------------------------------------------------------------------------

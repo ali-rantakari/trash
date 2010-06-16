@@ -21,6 +21,10 @@ The options are as follows:
 
 =over 12
 
+=item B<-u>
+
+Check for updates online (and optionally auto-update self). This feature is interactive (requires user input).
+
 =item B<-v>
 
 Be verbose when moving items to the trash, showing them as they are moved.

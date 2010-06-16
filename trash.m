@@ -1,7 +1,7 @@
 //  trash.m
 //
 //  Created by Ali Rantakari
-//  http://hasseg.org
+//  http://hasseg.org/trash
 //
 
 /*
@@ -33,55 +33,31 @@ THE SOFTWARE.
 #include <ScriptingBridge/ScriptingBridge.h>
 #import <libgen.h>
 #import "Finder.h"
+#import "HGCLIUtils.h"
+#import "HGCLIAutoUpdater.h"
+#import "TrashAutoUpdaterDelegate.h"
+
+#ifndef ALWAYS_USE_FINDER
+	#define ALWAYS_USE_FINDER			YES
+#endif
 
 // (Apple reserves OSStatus values outside the range 1000-9999 inclusive)
 #define kHGAppleScriptError			9999
 #define kHGNotAllFilesTrashedError	9998
 
 const int VERSION_MAJOR = 0;
-const int VERSION_MINOR = 7;
-const int VERSION_BUILD = 2;
+const int VERSION_MINOR = 8;
+const int VERSION_BUILD = 0;
 
 BOOL arg_verbose = NO;
 
 
 
-// helper methods for printing to stdout and stderr
-
-// other Printf functions call this, and you call them
-void RealPrintf(NSString *aStr, va_list args)
-{
-	NSString *str = [
-		[[NSString alloc]
-			initWithFormat:aStr
-			locale:[[NSUserDefaults standardUserDefaults] dictionaryRepresentation]
-			arguments:args
-			] autorelease
-		];
-	
-	[str writeToFile:@"/dev/stdout" atomically:NO encoding:NSUTF8StringEncoding error:NULL];
-}
 
 void VerbosePrintf(NSString *aStr, ...)
 {
 	if (!arg_verbose)
 		return;
-	va_list argList;
-	va_start(argList, aStr);
-	RealPrintf(aStr, argList);
-	va_end(argList);
-}
-
-void Printf(NSString *aStr, ...)
-{
-	va_list argList;
-	va_start(argList, aStr);
-	RealPrintf(aStr, argList);
-	va_end(argList);
-}
-
-void PrintfErr(NSString *aStr, ...)
-{
 	va_list argList;
 	va_start(argList, aStr);
 	NSString *str = [
@@ -93,8 +69,9 @@ void PrintfErr(NSString *aStr, ...)
 		];
 	va_end(argList);
 	
-	[str writeToFile:@"/dev/stderr" atomically:NO encoding:NSUTF8StringEncoding error:NULL];
+	[str writeToFile:@"/dev/stdout" atomically:NO encoding:outputStrEncoding error:NULL];
 }
+
 
 
 
@@ -316,7 +293,7 @@ FSRef getFSRef(NSString *filePath)
 	return fsRef;
 }
 
-OSStatus moveFileToTrash(FSRef fsRef)
+OSStatus moveFileToTrashFSRef(FSRef fsRef)
 {
 	// We use FSMoveObjectToTrashSync() directly instead of
 	// using NSWorkspace's performFileOperation:... (which
@@ -365,6 +342,7 @@ void printUsage()
 	Printf(@"\n");
 	Printf(@"  Options:\n");
 	Printf(@"\n");
+	Printf(@"  -u  Check for updates (and optionally auto-update self)\n");
 	Printf(@"  -v  Be verbose; show files as they are deleted\n");
 	Printf(@"  -l  List items currently in the trash\n");
 	Printf(@"  -e  Empty the trash (asks for confirmation)\n");
@@ -393,10 +371,11 @@ int main(int argc, char *argv[])
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
+	BOOL arg_autoUpdate = NO;
 	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
 	
 	int opt;
-	while ((opt = getopt(argc, argv, "vles")) != EOF)
+	while ((opt = getopt(argc, argv, "uvles")) != EOF)
 	{
 		switch (opt)
 		{
@@ -408,6 +387,8 @@ int main(int argc, char *argv[])
 				break;
 			case 's':	arg_emptySecurely = YES;
 				break;
+			case 'u':	arg_autoUpdate = YES;
+				break;
 			case '?':
 			default:
 				printUsage();
@@ -415,6 +396,19 @@ int main(int argc, char *argv[])
 		}
 	}
 	
+	
+	if (arg_autoUpdate)
+	{
+		HGCLIAutoUpdater *autoUpdater = [[[HGCLIAutoUpdater alloc]
+			initWithAppName:@"trash"
+			currentVersionStr:versionNumberStr()
+			] autorelease];
+		TrashAutoUpdaterDelegate *autoUpdaterDelegate = [[[TrashAutoUpdaterDelegate alloc] init] autorelease];
+		autoUpdater.delegate = autoUpdaterDelegate;
+		
+		[autoUpdater checkForUpdatesWithUI];
+		return 0;
+	}
 	
 	if (arg_list)
 	{
@@ -490,7 +484,7 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		OSStatus status = moveFileToTrash(fsRef);
+		OSStatus status = moveFileToTrashFSRef(fsRef);
 		if (status == afpAccessDenied)
 			[restrictedPathsForFinder addObject:path];
 		else if (status != noErr)
