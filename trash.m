@@ -40,7 +40,7 @@ THE SOFTWARE.
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 7;
-const int VERSION_BUILD = 1;
+const int VERSION_BUILD = 2;
 
 BOOL arg_verbose = NO;
 
@@ -384,8 +384,6 @@ int main(int argc, char *argv[])
 	int exitValue = 0;
 	myBasename = basename(argv[0]);
 	
-	checkForRoot();
-	
 	if (argc == 1)
 	{
 		printUsage();
@@ -428,6 +426,9 @@ int main(int argc, char *argv[])
 		OSStatus status = emptyTrash(arg_emptySecurely);
 		return (status == noErr) ? 0 : 1;
 	}
+	
+	if (!arg_useFinderForAll)
+		checkForRoot();
 	
 	// Always separate restricted and other items and call askFinderToMoveFilesToTrash() for
 	// both groups separately because if the user cancels the authentication any files listed
