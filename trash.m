@@ -100,19 +100,19 @@ void PrintfErr(NSString *aStr, ...)
 
 void checkForRoot()
 {
-	if (getuid() == 0)
-	{
-		Printf(@"You seem to be running as root. Any files trashed\n");
-		Printf(@"as root will be moved to root's trash folder instead\n");
-		Printf(@"of your trash folder. Are you sure you want to continue?\n");
-		
-		Printf(@"[y/N]: ");
-		char inputChar;
-		scanf("%s&*c",&inputChar);
-		
-		if (inputChar != 'y' && inputChar != 'Y')
-			exit(0);
-	}
+	if (getuid() != 0)
+		return;
+	
+	Printf(@"You seem to be running as root. Any files trashed\n");
+	Printf(@"as root will be moved to root's trash folder instead\n");
+	Printf(@"of your trash folder. Are you sure you want to continue?\n");
+	
+	Printf(@"[y/N]: ");
+	char inputChar;
+	scanf("%s&*c",&inputChar);
+	
+	if (inputChar != 'y' && inputChar != 'Y')
+		exit(0);
 }
 
 
@@ -304,7 +304,19 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 }
 
 
-OSStatus moveFileToTrash(NSString *filePath)
+FSRef getFSRef(NSString *filePath)
+{
+	FSRef fsRef;
+	FSPathMakeRefWithOptions(
+		(const UInt8 *)[filePath fileSystemRepresentation],
+		kFSPathMakeRefDoNotFollowLeafSymlink,
+		&fsRef,
+		NULL // Boolean *isDirectory
+		);
+	return fsRef;
+}
+
+OSStatus moveFileToTrash(FSRef fsRef)
 {
 	// We use FSMoveObjectToTrashSync() directly instead of
 	// using NSWorkspace's performFileOperation:... (which
@@ -314,18 +326,7 @@ OSStatus moveFileToTrash(NSString *filePath)
 	// or failure.
 	// 
 	
-	if (filePath == nil)
-		return bdNamErr;
-	
-	FSRef fsRef;
-	FSPathMakeRefWithOptions(
-		(const UInt8 *)[filePath fileSystemRepresentation],
-		kFSPathMakeRefDoNotFollowLeafSymlink,
-		&fsRef,
-		NULL // Boolean *isDirectory
-		);
 	OSStatus ret = FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
-	VerbosePrintf(@"%@\n", filePath);
 	return ret;
 }
 
@@ -441,23 +442,46 @@ int main(int argc, char *argv[])
 		NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
 		if (path == nil)
 		{
-			PrintfErr(@"Error: invalid path: %s\n", argv[i]);
+			PrintfErr(@"trash: %s: invalid path\n", argv[i]);
 			continue;
 		}
 		
+		
+		FSRef fsRef = getFSRef(path);
+		
 		if (arg_useFinderForAll)
 		{
-			BOOL exists = [[NSFileManager defaultManager] fileExistsAtPath:path];
-			if (!exists)
+			// get file info
+			FSCatalogInfo catInfo;
+			OSErr getCatalogStatus = FSGetCatalogInfo(
+				&fsRef,
+				kFSCatInfoUserPrivs|kFSCatInfoPermissions,
+				&catInfo,
+				NULL, // HFSUniStr255 *outName
+				NULL, // FSSpecPtr fsSpec
+				NULL // FSRef *parentRef
+				);
+			if (getCatalogStatus == nsvErr)
 			{
-				PrintfErr(@"Error: path does not exist: %s\n", argv[i]);
+				PrintfErr(@"trash: %s: path does not exist\n", argv[i]);
+				exitValue = 1;
+				continue;
+			}
+			else if (getCatalogStatus != noErr)
+			{
+				PrintfErr(
+					@"trash: %s: cannot get file privileges (%i: %@)\n",
+					argv[i],
+					getCatalogStatus,
+					osStatusToErrorString(getCatalogStatus)
+					);
+				exitValue = 1;
 				continue;
 			}
 			
-			BOOL deletable = [[NSFileManager defaultManager] isDeletableFileAtPath:path];
-			BOOL writable = [[NSFileManager defaultManager] isWritableFileAtPath:path];
+			BOOL deletable = ((catInfo.userPrivileges & kioACUserNoMakeChangesMask) == 0);
 			
-			if (!(deletable && writable))
+			if (!deletable)
 				[restrictedPathsForFinder addObject:path];
 			else
 				[nonRestrictedPathsForFinder addObject:path];
@@ -465,15 +489,23 @@ int main(int argc, char *argv[])
 			continue;
 		}
 		
-		OSStatus status = moveFileToTrash(path);
+		OSStatus status = moveFileToTrash(fsRef);
 		if (status == afpAccessDenied)
 			[restrictedPathsForFinder addObject:path];
 		else if (status != noErr)
 		{
 			exitValue = 1;
-			PrintfErr(@"Error: can not trash: %@ (%@)\n", path, osStatusToErrorString(status));
+			PrintfErr(
+				@"trash: %s: can not move to trash (%i: %@)\n",
+				argv[i],
+				status,
+				osStatusToErrorString(status)
+				);
 		}
+		else
+			VerbosePrintf(@"%@\n", path);
 	}
+	
 	
 	if ([nonRestrictedPathsForFinder count] > 0)
 	{
@@ -484,9 +516,9 @@ int main(int argc, char *argv[])
 			verbosePrintPaths(nonRestrictedPathsForFinder);
 		
 		if (status == kHGNotAllFilesTrashedError)
-			PrintfErr(@"Error: some files were not moved to trash\n");
+			PrintfErr(@"trash: some files were not moved to trash\n");
 		else if (status != noErr)
-			PrintfErr(@"Error: error #%i\n", status);
+			PrintfErr(@"trash: error %i\n", status);
 	}
 	
 	if ([restrictedPathsForFinder count] > 0)
@@ -498,9 +530,9 @@ int main(int argc, char *argv[])
 			verbosePrintPaths(restrictedPathsForFinder);
 		
 		if (status == kHGNotAllFilesTrashedError)
-			PrintfErr(@"Error: some files were not moved to trash (authentication cancelled?)\n");
+			PrintfErr(@"trash: some files were not moved to trash (authentication cancelled?)\n");
 		else if (status != noErr)
-			PrintfErr(@"Error: error #%i\n", status);
+			PrintfErr(@"trash: error %i\n", status);
 	}
 	
 	
