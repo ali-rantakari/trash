@@ -27,7 +27,7 @@ else
 endif
 
 
-SOURCE_FILES=trash.m ANSIEscapeHelper.m HGCLIUtils.m HGCLIAutoUpdater.m HGCLIAutoUpdaterDelegate.m TrashAutoUpdaterDelegate.m
+SOURCE_FILES=trash.m ANSIEscapeHelper.m HGUtils.m HGCLIUtils.m HGCLIAutoUpdater.m HGCLIAutoUpdaterDelegate.m TrashAutoUpdaterDelegate.m
 
 
 

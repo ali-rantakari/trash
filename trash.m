@@ -33,6 +33,7 @@ THE SOFTWARE.
 #include <ScriptingBridge/ScriptingBridge.h>
 #import <libgen.h>
 #import "Finder.h"
+#import "HGUtils.h"
 #import "HGCLIUtils.h"
 #import "HGCLIAutoUpdater.h"
 #import "TrashAutoUpdaterDelegate.h"
@@ -103,15 +104,25 @@ FinderApplication *getFinderApp()
 }
 
 
-
-void listTrashContents()
+void listTrashContents(BOOL showAdditionalInfo)
 {
+	long long totalPhysicalSize = 0;
 	FinderApplication *finder = getFinderApp();
 	for (id item in [finder.trash items])
 	{
 		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
+		if (showAdditionalInfo)
+			totalPhysicalSize += [item physicalSize];
+	}
+	
+	if (showAdditionalInfo)
+	{
+		Printf(@"\nTotal: %@ (%ld bytes)\n",
+			stringFromFileSize(totalPhysicalSize),
+			totalPhysicalSize);
 	}
 }
+
 
 OSStatus emptyTrash(BOOL securely)
 {
@@ -144,7 +155,7 @@ OSStatus emptyTrash(BOOL securely)
 		
 		if (inputChar == 'l' || inputChar == 'L')
 		{
-			listTrashContents();
+			listTrashContents(false);
 			continue;
 		}
 		else if (inputChar != 'y' && inputChar != 'Y')
@@ -343,8 +354,11 @@ void printUsage()
 	Printf(@"  Options:\n");
 	Printf(@"\n");
 	Printf(@"  -u  Check for updates (and optionally auto-update self)\n");
-	Printf(@"  -v  Be verbose; show files as they are deleted\n");
-	Printf(@"  -l  List items currently in the trash\n");
+	Printf(@"  -v  Be verbose (show files as they are trashed, or if\n");
+	Printf(@"      used with the -l option, show additional information\n");
+	Printf(@"      about the trash contents)\n");
+	Printf(@"  -l  List items currently in the trash (add the -l option\n");
+	Printf(@"      to see additional information)\n");
 	Printf(@"  -e  Empty the trash (asks for confirmation)\n");
 	Printf(@"  -s  Securely empty the trash (asks for confirmation)\n");
 	Printf(@"\n");
@@ -412,7 +426,7 @@ int main(int argc, char *argv[])
 	
 	if (arg_list)
 	{
-		listTrashContents();
+		listTrashContents(arg_verbose);
 		return 0;
 	}
 	else if (arg_empty || arg_emptySecurely)
