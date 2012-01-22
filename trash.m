@@ -347,24 +347,27 @@ NSString* versionNumberStr()
 char *myBasename;
 void printUsage()
 {
-	Printf(@"usage: %s [-vles] <file> [<file> ...]\n", myBasename);
-	Printf(@"\n");
-	Printf(@"  Move files/folders to the trash.\n");
-	Printf(@"\n");
-	Printf(@"  Options:\n");
-	Printf(@"\n");
-	Printf(@"  -u  Check for updates (and optionally auto-update self)\n");
-	Printf(@"  -v  Be verbose (show files as they are trashed, or if\n");
-	Printf(@"      used with the -l option, show additional information\n");
-	Printf(@"      about the trash contents)\n");
-	Printf(@"  -l  List items currently in the trash (add the -l option\n");
-	Printf(@"      to see additional information)\n");
-	Printf(@"  -e  Empty the trash (asks for confirmation)\n");
-	Printf(@"  -s  Securely empty the trash (asks for confirmation)\n");
-	Printf(@"\n");
-	Printf(@"Version %@\n", versionNumberStr());
-	Printf(@"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/trash\n");
-	Printf(@"\n");
+	Printf(@"usage: %s [-ulesv] <file> [<file> ...]\n", myBasename);
+	Printf(@"\n"
+	       @"  Move files/folders to the trash.\n"
+	       @"\n"
+	       @"  Options to use with <file>:\n"
+	       @"\n"
+	       @"  -v  Be verbose (show files as they are trashed, or if\n"
+	       @"      used with the -l option, show additional information\n"
+	       @"      about the trash contents)\n"
+	       @"\n"
+	       @"  Stand-alone options (to use without <file>):\n"
+	       @"\n"
+	       @"  -u  Check for updates (and optionally auto-update self)\n"
+	       @"  -l  List items currently in the trash (add the -v option\n"
+	       @"      to see additional information)\n"
+	       @"  -e  Empty the trash (asks for confirmation)\n"
+	       @"  -s  Securely empty the trash (asks for confirmation)\n"
+	       @"\n"
+	       @"Version %@\n"
+	       @"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/trash\n"
+	       @"\n", versionNumberStr());
 }
 
 
