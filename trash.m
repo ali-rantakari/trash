@@ -37,6 +37,7 @@ THE SOFTWARE.
 #import "HGCLIUtils.h"
 #import "HGCLIAutoUpdater.h"
 #import "TrashAutoUpdaterDelegate.h"
+#import "fileSize.h"
 
 #ifndef ALWAYS_USE_FINDER
 	#define ALWAYS_USE_FINDER			YES
@@ -104,23 +105,53 @@ FinderApplication *getFinderApp()
 }
 
 
+void printDiskUsageOfFinderItems(NSArray *finderItems)
+{
+	NSUInteger totalPhysicalSize = 0;
+	
+	Printf(@"\nCalculating total disk usage of files in trash...\n");
+	for (id item in finderItems)
+	{
+	    NSUInteger size = 0;
+	    NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
+	    
+	    BOOL isDir = NO;
+	    if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir])
+	        continue;
+	    
+	    if (!isDir)
+	        size = [item physicalSize];
+	    else
+	        size = sizeOfFolder(path, YES);
+	    
+	    totalPhysicalSize += size;
+	}
+	
+	// Format the bytes with thousand separators:
+	NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init] autorelease];
+    [numberFormatter setFormatterBehavior:NSNumberFormatterBehavior10_4];
+    [numberFormatter setNumberStyle:NSNumberFormatterDecimalStyle];
+    NSString *formattedBytes = [numberFormatter stringFromNumber:[NSNumber numberWithUnsignedInteger:totalPhysicalSize]];
+	
+    Printf(@"Total: %@ (%@ bytes)\n",
+        stringFromFileSize(totalPhysicalSize),
+        formattedBytes
+        );
+}
+
+
 void listTrashContents(BOOL showAdditionalInfo)
 {
-	long long totalPhysicalSize = 0;
 	FinderApplication *finder = getFinderApp();
-	for (id item in [finder.trash items])
+	NSArray *itemsInTrash = [finder.trash items];
+	for (id item in itemsInTrash)
 	{
-		Printf(@"%@\n", [[NSURL URLWithString:(NSString *)[item URL]] path]);
-		if (showAdditionalInfo)
-			totalPhysicalSize += [item physicalSize];
+	    NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
+		Printf(@"%@\n", path);
 	}
 	
 	if (showAdditionalInfo)
-	{
-		Printf(@"\nTotal: %@ (%ld bytes)\n",
-			stringFromFileSize(totalPhysicalSize),
-			totalPhysicalSize);
-	}
+	    printDiskUsageOfFinderItems(itemsInTrash);
 }
 
 
