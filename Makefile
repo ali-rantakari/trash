@@ -51,7 +51,7 @@ trash: $(SOURCE_FILES)
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -arch ppc -framework AppKit -framework ScriptingBridge -DALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ $(SOURCE_FILES)
+	$(COMPILER) -O2 -Wall -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -framework AppKit -framework ScriptingBridge -DALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ $(SOURCE_FILES)
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
