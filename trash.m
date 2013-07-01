@@ -70,7 +70,7 @@ void VerbosePrintf(NSString *aStr, ...)
 			] autorelease
 		];
 	va_end(argList);
-	
+
 	[str writeToFile:@"/dev/stdout" atomically:NO encoding:outputStrEncoding error:NULL];
 }
 
@@ -81,15 +81,15 @@ void checkForRoot()
 {
 	if (getuid() != 0)
 		return;
-	
+
 	Printf(@"You seem to be running as root. Any files trashed\n");
 	Printf(@"as root will be moved to root's trash folder instead\n");
 	Printf(@"of your trash folder. Are you sure you want to continue?\n");
-	
+
 	Printf(@"[y/N]: ");
 	char inputChar;
 	scanf("%s&*c",&inputChar);
-	
+
 	if (inputChar != 'y' && inputChar != 'Y')
 		exit(0);
 }
@@ -108,31 +108,31 @@ FinderApplication *getFinderApp()
 void printDiskUsageOfFinderItems(NSArray *finderItems)
 {
 	NSUInteger totalPhysicalSize = 0;
-	
+
 	Printf(@"\nCalculating total disk usage of files in trash...\n");
 	for (id item in finderItems)
 	{
 	    NSUInteger size = 0;
 	    NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
-	    
+
 	    BOOL isDir = NO;
 	    if (![[NSFileManager defaultManager] fileExistsAtPath:path isDirectory:&isDir])
 	        continue;
-	    
+
 	    if (!isDir)
 	        size = [item physicalSize];
 	    else
 	        size = sizeOfFolder(path, YES);
-	    
+
 	    totalPhysicalSize += size;
 	}
-	
+
 	// Format the bytes with thousand separators:
 	NSNumberFormatter* numberFormatter = [[[NSNumberFormatter alloc] init] autorelease];
     [numberFormatter setFormatterBehavior:NSNumberFormatterBehavior10_4];
     [numberFormatter setNumberStyle:NSNumberFormatterDecimalStyle];
     NSString *formattedBytes = [numberFormatter stringFromNumber:[NSNumber numberWithUnsignedInteger:totalPhysicalSize]];
-	
+
     Printf(@"Total: %@ (%@ bytes)\n",
         stringFromFileSize(totalPhysicalSize),
         formattedBytes
@@ -149,7 +149,7 @@ void listTrashContents(BOOL showAdditionalInfo)
 	    NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
 		Printf(@"%@\n", path);
 	}
-	
+
 	if (showAdditionalInfo)
 	    printDiskUsageOfFinderItems(itemsInTrash);
 }
@@ -158,14 +158,14 @@ void listTrashContents(BOOL showAdditionalInfo)
 OSStatus emptyTrash(BOOL securely)
 {
 	FinderApplication *finder = getFinderApp();
-	
+
 	NSUInteger trashItemsCount = [[finder.trash items] count];
 	if (trashItemsCount == 0)
 	{
 		Printf(@"The trash is already empty.\n");
 		return noErr;
 	}
-	
+
 	BOOL plural = (trashItemsCount > 1);
 	Printf(
 		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n",
@@ -177,13 +177,13 @@ OSStatus emptyTrash(BOOL securely)
 		plural?@"s":@""
 		);
 	Printf(@"(y = permanently empty the trash, l = list items in trash, n = don't empty)\n");
-	
+
 	for (;;)
 	{
 		Printf(@"[y/l/N]: ");
 		char inputChar;
 		scanf("%s&*c",&inputChar);
-		
+
 		if (inputChar == 'l' || inputChar == 'L')
 		{
 			listTrashContents(false);
@@ -193,13 +193,13 @@ OSStatus emptyTrash(BOOL securely)
 			return kHGNotAllFilesTrashedError;
 		break;
 	}
-	
+
 	if (securely)
 		Printf(@"(secure empty trash will take a long while so please be patient...)\n");
-	
+
 	finder.trash.warnsBeforeEmptying = NO;
 	[finder.trash emptySecurity:securely];
-	
+
 	return noErr;
 }
 
@@ -217,7 +217,7 @@ NSString *getAbsolutePath(NSString *filePath)
 	}
 	else // already absolute -- we just want to standardize without following possible leaf symlink
 		parentDirPath = [[filePath stringByDeletingLastPathComponent] stringByStandardizingPath];
-	
+
 	return [parentDirPath stringByAppendingPathComponent:[filePath lastPathComponent]];
 }
 
@@ -225,7 +225,7 @@ NSString *getAbsolutePath(NSString *filePath)
 ProcessSerialNumber getFinderPSN()
 {
 	ProcessSerialNumber psn = {0, 0};
-	
+
 	NSEnumerator *appsEnumerator = [[[NSWorkspace sharedWorkspace] launchedApplications] objectEnumerator];
 	NSDictionary *appInfoDict = nil;
 	while ((appInfoDict = [appsEnumerator nextObject]))
@@ -237,7 +237,7 @@ ProcessSerialNumber getFinderPSN()
 			break;
 		}
 	}
-	
+
 	return psn;
 }
 
@@ -247,17 +247,17 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 	// Here we manually send Finder the Apple Event that tells it
 	// to trash the specified files all at once. This is roughly
 	// equivalent to the following AppleScript:
-	// 
+	//
 	//   tell application "Finder" to delete every item of
 	//     {(POSIX file "/path/one"), (POSIX file "/path/two")}
-	// 
+	//
 	// First of all, this doesn't seem to be possible with the
 	// Scripting Bridge (the -delete method is only available
 	// for individual items there, and we don't want to loop
 	// through items, calling that method for each one because
 	// then Finder would prompt for authentication separately
 	// for each one).
-	// 
+	//
 	// The second approach I took was to construct an AppleScript
 	// string that looked like the example above, but this
 	// seemed a bit volatile. 'has' suggested in a comment on
@@ -266,8 +266,8 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 	// fine and this is noticeably faster this way than generating
 	// and executing some AppleScript was. I also don't have
 	// to worry about input sanitization anymore.
-	// 
-	
+	//
+
 	// generate list descriptor containting the file URLs
 	NSAppleEventDescriptor *urlListDescr = [NSAppleEventDescriptor listDescriptor];
 	NSInteger i = 1;
@@ -280,7 +280,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 			];
 		[urlListDescr insertDescriptor:descr atIndex:i++];
 	}
-	
+
 	// generate the 'top-level' "delete" descriptor
 	ProcessSerialNumber finderPSN = getFinderPSN();
 	NSAppleEventDescriptor *targetDesc = [NSAppleEventDescriptor
@@ -295,30 +295,30 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 		returnID:kAutoGenerateReturnID
 		transactionID:kAnyTransactionID
 		];
-	
+
 	// add the list of file URLs as argument
 	[descriptor setDescriptor:urlListDescr forKeyword:'----'];
-	
+
 	if (bringFinderToFront)
 		[getFinderApp() activate];
-	
+
 	// send the Apple Event synchronously
 	AppleEvent replyEvent;
 	OSStatus sendErr = AESendMessage([descriptor aeDesc], &replyEvent, kAEWaitReply, kAEDefaultTimeout);
 	if (sendErr != noErr)
 		return sendErr;
-	
+
 	// check reply in order to determine return value
 	AEDesc replyAEDesc;
 	OSStatus getReplyErr = AEGetParamDesc(&replyEvent, keyDirectObject, typeWildCard, &replyAEDesc);
 	if (getReplyErr != noErr)
 		return getReplyErr;
-	
+
 	NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
 	if ([replyDesc numberOfItems] == 0
 		|| ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != [filePaths count])))
 		return kHGNotAllFilesTrashedError;
-	
+
 	return noErr;
 }
 
@@ -343,8 +343,8 @@ OSStatus moveFileToTrashFSRef(FSRef fsRef)
 	// returns us an OSStatus describing a possible error
 	// and the latter only returns a BOOL describing success
 	// or failure.
-	// 
-	
+	//
+
 	OSStatus ret = FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
 	return ret;
 }
@@ -357,7 +357,7 @@ NSString *osStatusToErrorString(OSStatus status)
 	// than manually writing a long switch statement and typing up
 	// the error messages -- the messages returned by this function
 	// are 'good enough' for this program's supposed users.
-	// 
+	//
 	return [[NSString stringWithUTF8String:GetMacOSStatusCommentString(status)]
 			stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceCharacterSet]];
 }
@@ -408,22 +408,21 @@ void printUsage()
 int main(int argc, char *argv[])
 {
 	NSAutoreleasePool *autoReleasePool = [[NSAutoreleasePool alloc] init];
-	
+
 	int exitValue = 0;
 	myBasename = basename(argv[0]);
-	
+
 	if (argc == 1)
 	{
 		printUsage();
 		return 0;
 	}
-	
+
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
 	BOOL arg_autoUpdate = NO;
 	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
-	
 
 	char *optstring =
 		"uvles" // The options we support
@@ -460,8 +459,8 @@ int main(int argc, char *argv[])
 				return 1;
 		}
 	}
-	
-	
+
+
 	if (arg_autoUpdate)
 	{
 		HGCLIAutoUpdater *autoUpdater = [[[HGCLIAutoUpdater alloc]
@@ -470,11 +469,11 @@ int main(int argc, char *argv[])
 			] autorelease];
 		TrashAutoUpdaterDelegate *autoUpdaterDelegate = [[[TrashAutoUpdaterDelegate alloc] init] autorelease];
 		autoUpdater.delegate = autoUpdaterDelegate;
-		
+
 		[autoUpdater checkForUpdatesWithUI];
 		return 0;
 	}
-	
+
 	if (arg_list)
 	{
 		listTrashContents(arg_verbose);
@@ -485,16 +484,16 @@ int main(int argc, char *argv[])
 		OSStatus status = emptyTrash(arg_emptySecurely);
 		return (status == noErr) ? 0 : 1;
 	}
-	
+
 	if (!arg_useFinderForAll)
 		checkForRoot();
-	
+
 	// Always separate restricted and other items and call askFinderToMoveFilesToTrash() for
 	// both groups separately because if the user cancels the authentication any files listed
 	// after the first restricted item are not trashed at all
 	NSMutableArray *nonRestrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 	NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
-	
+
 	int i;
 	for (i = optind; i < argc; i++)
 	{
@@ -505,10 +504,10 @@ int main(int argc, char *argv[])
 			PrintfErr(@"trash: %s: invalid path\n", argv[i]);
 			continue;
 		}
-		
-		
+
+
 		FSRef fsRef = getFSRef(path);
-		
+
 		if (arg_useFinderForAll)
 		{
 			// get file info
@@ -538,17 +537,17 @@ int main(int argc, char *argv[])
 				exitValue = 1;
 				continue;
 			}
-			
+
 			BOOL deletable = ((catInfo.userPrivileges & kioACUserNoMakeChangesMask) == 0);
-			
+
 			if (!deletable)
 				[restrictedPathsForFinder addObject:path];
 			else
 				[nonRestrictedPathsForFinder addObject:path];
-			
+
 			continue;
 		}
-		
+
 		OSStatus status = moveFileToTrashFSRef(fsRef);
 		if (status == afpAccessDenied)
 			[restrictedPathsForFinder addObject:path];
@@ -565,8 +564,8 @@ int main(int argc, char *argv[])
 		else
 			VerbosePrintf(@"%@\n", path);
 	}
-	
-	
+
+
 	if ([nonRestrictedPathsForFinder count] > 0)
 	{
 		OSStatus status = askFinderToMoveFilesToTrash(nonRestrictedPathsForFinder, NO);
@@ -574,13 +573,13 @@ int main(int argc, char *argv[])
 			exitValue = 1;
 		else
 			verbosePrintPaths(nonRestrictedPathsForFinder);
-		
+
 		if (status == kHGNotAllFilesTrashedError)
 			PrintfErr(@"trash: some files were not moved to trash\n");
 		else if (status != noErr)
 			PrintfErr(@"trash: error %i\n", status);
 	}
-	
+
 	if ([restrictedPathsForFinder count] > 0)
 	{
 		OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
@@ -588,14 +587,14 @@ int main(int argc, char *argv[])
 			exitValue = 1;
 		else
 			verbosePrintPaths(restrictedPathsForFinder);
-		
+
 		if (status == kHGNotAllFilesTrashedError)
 			PrintfErr(@"trash: some files were not moved to trash (authentication cancelled?)\n");
 		else if (status != noErr)
 			PrintfErr(@"trash: error %i\n", status);
 	}
-	
-	
+
+
 	[autoReleasePool release];
 	return exitValue;
 }
