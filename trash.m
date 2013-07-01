@@ -396,6 +396,8 @@ void printUsage()
 	       @"  -e  Empty the trash (asks for confirmation)\n"
 	       @"  -s  Securely empty the trash (asks for confirmation)\n"
 	       @"\n"
+	       @"  Options supported by `rm` are silently accepted.\n"
+	       @"\n"
 	       @"Version %@\n"
 	       @"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/trash\n"
 	       @"\n", versionNumberStr());
@@ -422,8 +424,14 @@ int main(int argc, char *argv[])
 	BOOL arg_autoUpdate = NO;
 	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
 	
+
+	char *optstring =
+		"uvles" // The options we support
+		"dfirPRW" // Options supported by `rm`
+		;
+
 	int opt;
-	while ((opt = getopt(argc, argv, "uvles")) != EOF)
+	while ((opt = getopt(argc, argv, optstring)) != EOF)
 	{
 		switch (opt)
 		{
@@ -436,6 +444,15 @@ int main(int argc, char *argv[])
 			case 's':	arg_emptySecurely = YES;
 				break;
 			case 'u':	arg_autoUpdate = YES;
+				break;
+			case 'd':
+			case 'f':
+			case 'i':
+			case 'r':
+			case 'P':
+			case 'R':
+			case 'W':
+				// Silently accept `rm`'s arguments
 				break;
 			case '?':
 			default:
