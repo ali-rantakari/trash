@@ -197,8 +197,10 @@ OSStatus emptyTrash(BOOL securely)
 	if (securely)
 		Printf(@"(secure empty trash will take a long while so please be patient...)\n");
 
+	BOOL warnsBeforeEmptyingOriginalValue = finder.trash.warnsBeforeEmptying;
 	finder.trash.warnsBeforeEmptying = NO;
 	[finder.trash emptySecurity:securely];
+	finder.trash.warnsBeforeEmptying = warnsBeforeEmptyingOriginalValue;
 
 	return noErr;
 }
