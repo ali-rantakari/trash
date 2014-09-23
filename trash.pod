@@ -9,7 +9,7 @@ B<trash> -- move files/folders to the trash
 
 =item B<trash>
 
-[B<-vles>] I<file> I<...>
+[B<-avles>] I<file> I<...>
 
 =back
 
