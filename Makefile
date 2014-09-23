@@ -3,13 +3,6 @@
 
 SHELL=/bin/bash
 
-ifdef USE_SYSTEM_API
-	ALWAYS_USE_FINDER=NO
-else
-	ALWAYS_USE_FINDER=YES
-endif
-
-
 SOURCE_FILES=trash.m HGUtils.m HGCLIUtils.m fileSize.m
 
 
@@ -27,7 +20,7 @@ trash: $(SOURCE_FILES)
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(CC) -O2 -Wall -Wextra -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -framework AppKit -framework ScriptingBridge -DALWAYS_USE_FINDER=$(ALWAYS_USE_FINDER) -o $@ $(SOURCE_FILES)
+	$(CC) -O2 -Wall -Wextra -force_cpusubtype_ALL -mmacosx-version-min=10.5 -arch i386 -framework AppKit -framework ScriptingBridge -o $@ $(SOURCE_FILES)
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------

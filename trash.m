@@ -37,10 +37,6 @@ THE SOFTWARE.
 #import "HGCLIUtils.h"
 #import "fileSize.h"
 
-#ifndef ALWAYS_USE_FINDER
-	#define ALWAYS_USE_FINDER			YES
-#endif
-
 // (Apple reserves OSStatus values outside the range 1000-9999 inclusive)
 #define kHGAppleScriptError			9999
 #define kHGNotAllFilesTrashedError	9998
@@ -421,7 +417,7 @@ int main(int argc, char *argv[])
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
-	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
+	BOOL arg_useFinderForAll = YES;
 
 	char *optstring =
 		"uvles" // The options we support

@@ -2,7 +2,9 @@
 
 This is a small command-line program for OS X that moves files or folders to the trash.
 
-By default, `trash` asks Finder to move the specified files/folders to the trash instead of calling the system API to do this because of the _"put back"_ feature that only works when trashing files through Finder. If you compile `trash` by running the command `make USE_SYSTEM_API=1` the generated build will always first try the system API and only call on Finder to trash files the user lacks access rights for. See [my blog post][post] for more info on some initial implementation details and design decisions.
+By default, `trash` asks Finder to move the specified files/folders to the trash instead of calling the system API to do this because of the _"put back"_ feature that only works when trashing files through Finder.
+
+See [my blog post][post] for more info on some initial implementation details and design decisions.
 
 [post]: http://hasseg.org/blog/post/406/trash-files-from-the-os-x-command-line/
 
