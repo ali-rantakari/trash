@@ -35,8 +35,6 @@ THE SOFTWARE.
 #import "Finder.h"
 #import "HGUtils.h"
 #import "HGCLIUtils.h"
-#import "HGCLIAutoUpdater.h"
-#import "TrashAutoUpdaterDelegate.h"
 #import "fileSize.h"
 
 #ifndef ALWAYS_USE_FINDER
@@ -423,7 +421,6 @@ int main(int argc, char *argv[])
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
-	BOOL arg_autoUpdate = NO;
 	BOOL arg_useFinderForAll = ALWAYS_USE_FINDER; // ALWAYS_USE_FINDER defined at compile time
 
 	char *optstring =
@@ -444,8 +441,6 @@ int main(int argc, char *argv[])
 				break;
 			case 's':	arg_emptySecurely = YES;
 				break;
-			case 'u':	arg_autoUpdate = YES;
-				break;
 			case 'd':
 			case 'f':
 			case 'i':
@@ -462,19 +457,6 @@ int main(int argc, char *argv[])
 		}
 	}
 
-
-	if (arg_autoUpdate)
-	{
-		HGCLIAutoUpdater *autoUpdater = [[[HGCLIAutoUpdater alloc]
-			initWithAppName:@"trash"
-			currentVersionStr:versionNumberStr()
-			] autorelease];
-		TrashAutoUpdaterDelegate *autoUpdaterDelegate = [[[TrashAutoUpdaterDelegate alloc] init] autorelease];
-		autoUpdater.delegate = autoUpdaterDelegate;
-
-		[autoUpdater checkForUpdatesWithUI];
-		return 0;
-	}
 
 	if (arg_list)
 	{
