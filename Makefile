@@ -1,16 +1,11 @@
 # trash makefile
 # 
 
-SHELL=/bin/bash
-
 SOURCE_FILES=trash.m HGUtils.m HGCLIUtils.m fileSize.m
-
-
 
 all: trash
 
-docs: trash.1 usage.txt
-
+docs: trash.1
 
 #-------------------------------------------------------------------------
 #-------------------------------------------------------------------------
