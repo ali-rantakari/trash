@@ -316,7 +316,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 
 	NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
 	if ([replyDesc numberOfItems] == 0
-		|| ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != [filePaths count])))
+		|| ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != (NSInteger)[filePaths count])))
 		return kHGNotAllFilesTrashedError;
 
 	return noErr;
