@@ -492,6 +492,12 @@ int main(int argc, char *argv[])
 			continue;
 		}
 
+		if (![[NSFileManager defaultManager] fileExistsAtPath:path])
+		{
+			PrintfErr(@"trash: %s: path does not exist\n", argv[i]);
+			exitValue = 1;
+			continue;
+		}
 
 		FSRef fsRef = getFSRef(path);
 
@@ -507,13 +513,7 @@ int main(int argc, char *argv[])
 				NULL, // FSSpecPtr fsSpec
 				NULL // FSRef *parentRef
 				);
-			if (getCatalogStatus == nsvErr)
-			{
-				PrintfErr(@"trash: %s: path does not exist\n", argv[i]);
-				exitValue = 1;
-				continue;
-			}
-			else if (getCatalogStatus != noErr)
+			if (getCatalogStatus != noErr)
 			{
 				PrintfErr(
 					@"trash: %s: cannot get file privileges (%i: %@)\n",
