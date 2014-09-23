@@ -21,7 +21,9 @@ The options are as follows:
 
 =over 12
 
+=item B<-a>
 
+Use system API for trashing files instead of asking Finder to do it. (Faster, but the 'put back' feature in the Finder trash will not work if files are trashed using this method.) Finder is still used for trashing files you have no access rights for.
 
 =item B<-v>
 

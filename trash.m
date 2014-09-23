@@ -380,6 +380,11 @@ void printUsage()
 	       @"\n"
 	       @"  Options to use with <file>:\n"
 	       @"\n"
+	       @"  -a  Use system API for trashing files instead of asking\n"
+	       @"      Finder to do it. (Faster, but the 'put back' feature\n"
+	       @"      in the Finder trash will not work if files are trashed\n"
+	       @"      using this method.) Finder is still used for trashing\n"
+	       @"      files you have no access rights for.\n"
 	       @"  -v  Be verbose (show files as they are trashed, or if\n"
 	       @"      used with the -l option, show additional information\n"
 	       @"      about the trash contents)\n"
@@ -420,7 +425,7 @@ int main(int argc, char *argv[])
 	BOOL arg_useFinderForAll = YES;
 
 	char *optstring =
-		"uvles" // The options we support
+		"uvlesa" // The options we support
 		"dfirPRW" // Options supported by `rm`
 		;
 
@@ -429,6 +434,8 @@ int main(int argc, char *argv[])
 	{
 		switch (opt)
 		{
+			case 'a':	arg_useFinderForAll = NO;
+				break;
 			case 'v':	arg_verbose = YES;
 				break;
 			case 'l':	arg_list = YES;
