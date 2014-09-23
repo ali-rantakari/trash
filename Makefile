@@ -10,7 +10,7 @@ else
 endif
 
 
-SOURCE_FILES=trash.m ANSIEscapeHelper.m HGUtils.m HGCLIUtils.m fileSize.m
+SOURCE_FILES=trash.m HGUtils.m HGCLIUtils.m fileSize.m
 
 
 
