@@ -391,7 +391,6 @@ void printUsage()
 	       @"\n"
 	       @"  Stand-alone options (to use without <file>):\n"
 	       @"\n"
-	       @"  -u  Check for updates (and optionally auto-update self)\n"
 	       @"  -l  List items currently in the trash (add the -v option\n"
 	       @"      to see additional information)\n"
 	       @"  -e  Empty the trash (asks for confirmation)\n"
