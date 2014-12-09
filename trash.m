@@ -69,6 +69,35 @@ void VerbosePrintf(NSString *aStr, ...)
 }
 
 
+char promptForChar(const char *acceptableChars)
+{
+	const char *acceptableCharsLowercase = @(acceptableChars).lowercaseString.UTF8String;
+
+	for (;;)
+	{
+		putchar('[');
+		size_t numAcceptableChars = strlen(acceptableChars);
+		for (size_t i = 0; i < numAcceptableChars; i++)
+		{
+			putchar(acceptableChars[i]);
+			if (i < (numAcceptableChars - 1))
+				putchar('/');
+		}
+		printf("]: ");
+		
+		char *line = NULL;
+		size_t lineLength = 0;
+		ssize_t numCharsWritten = getline(&line, &lineLength, stdin);
+		char inputCharLowercase = (0 < numCharsWritten) ? tolower(line[0]) : '\0';
+		free(line);
+
+		if (numCharsWritten == 0)
+			continue;
+
+		if (strchr(acceptableCharsLowercase, inputCharLowercase))
+			return inputCharLowercase;
+	}
+}
 
 
 void checkForRoot()
@@ -80,15 +109,8 @@ void checkForRoot()
 	Printf(@"as root will be moved to root's trash folder instead\n");
 	Printf(@"of your trash folder. Are you sure you want to continue?\n");
 
-	Printf(@"[y/N]: ");
-	
-	char *line = NULL, inputChar = '\0';
-	size_t unused;
-
-	if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
-	free(line);
-
-	if (inputChar != 'y' && inputChar != 'Y')
+	char inputChar = promptForChar("yN");
+	if (inputChar != 'y')
 		exit(1);
 }
 
@@ -180,22 +202,14 @@ OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 
 		for (;;)
 		{
-			Printf(@"[y/l/N]: ");
+			char inputChar = promptForChar("ylN");
 
-			char *line = NULL, inputChar = '\0';
-			size_t unused;
-
-			if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
-			free(line);
-
-			if (inputChar == 'l' || inputChar == 'L')
-			{
-				listTrashContents(false);
-				continue;
-			}
-			else if (inputChar != 'y' && inputChar != 'Y')
+			if (inputChar == 'l')
+				listTrashContents(NO);
+			else if (inputChar != 'y')
 				return kHGNotAllFilesTrashedError;
-			break;
+			else
+				break;
 		}
 	}
 
