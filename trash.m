@@ -105,9 +105,9 @@ void checkForRoot()
 	if (getuid() != 0)
 		return;
 
-	Printf(@"You seem to be running as root. Any files trashed\n");
-	Printf(@"as root will be moved to root's trash folder instead\n");
-	Printf(@"of your trash folder. Are you sure you want to continue?\n");
+	Printf(@"You seem to be running as root. Any files trashed\n"
+		   @"as root will be moved to root's trash folder instead\n"
+		   @"of your trash folder. Are you sure you want to continue?\n");
 
 	char inputChar = promptForChar("yN");
 	if (inputChar != 'y')
