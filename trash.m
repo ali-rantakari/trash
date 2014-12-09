@@ -86,7 +86,7 @@ void checkForRoot()
 	size_t unused;
 
 	if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
-	if (line) free(line);
+	free(line);
 
 	if (inputChar != 'y' && inputChar != 'Y')
 		exit(1);
@@ -186,7 +186,7 @@ OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 			size_t unused;
 
 			if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
-			if (line) free(line);
+			free(line);
 
 			if (inputChar == 'l' || inputChar == 'L')
 			{
