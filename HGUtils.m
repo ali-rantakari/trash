@@ -32,48 +32,48 @@ THE SOFTWARE.
 
 NSInteger OSVersion()
 {
-	static NSInteger cachedValue = 0;
-	
-	if (cachedValue > 0)
-		return cachedValue;
-	
-	SInt32 major, minor, bugfix;
-	
-	if (Gestalt(gestaltSystemVersionMajor, &major) ||
-		Gestalt(gestaltSystemVersionMinor, &minor) ||
-		Gestalt(gestaltSystemVersionBugFix, &bugfix))
-		return 0;
-	
-	cachedValue = ((major * 100) + minor) * 100 + bugfix;
-	return cachedValue;
+    static NSInteger cachedValue = 0;
+    
+    if (cachedValue > 0)
+        return cachedValue;
+    
+    SInt32 major, minor, bugfix;
+    
+    if (Gestalt(gestaltSystemVersionMajor, &major) ||
+        Gestalt(gestaltSystemVersionMinor, &minor) ||
+        Gestalt(gestaltSystemVersionBugFix, &bugfix))
+        return 0;
+    
+    cachedValue = ((major * 100) + minor) * 100 + bugfix;
+    return cachedValue;
 }
 
 
 NSString *stringFromFileSize(long long aSize)
 {
-	CGFloat size = aSize;
-	
-	// Finder uses SI prefixes on Snow Leopard and the IEC 60027-2
-	// binary prefixes on earlier OS X versions for file sizes
-	// and disk capacities so we'll do the same here.
-	// 
-	CGFloat kilo = (OSVersion() >= kSnowLeopardOSVersion) ? 1000.0 : 1024.0;
-	NSString *bytesSuffix = (kilo == 1000.0) ? @"B" : @"iB";
-	
-	if (size < kilo)
-		return([NSString stringWithFormat:@"%1.0f bytes",size]);
-	size = size / kilo;
-	if (size < kilo)
-		return([NSString stringWithFormat:@"%1.1f K%@",size,bytesSuffix]);
-	size = size / kilo;
-	if (size < kilo)
-		return([NSString stringWithFormat:@"%1.1f M%@",size,bytesSuffix]);
-	size = size / kilo;
-	if (size < kilo)
-		return([NSString stringWithFormat:@"%1.1f G%@",size,bytesSuffix]);
-	size = size / kilo;
-		
-	return([NSString stringWithFormat:@"%1.1f T%@",size,bytesSuffix]);
+    CGFloat size = aSize;
+    
+    // Finder uses SI prefixes on Snow Leopard and the IEC 60027-2
+    // binary prefixes on earlier OS X versions for file sizes
+    // and disk capacities so we'll do the same here.
+    // 
+    CGFloat kilo = (OSVersion() >= kSnowLeopardOSVersion) ? 1000.0 : 1024.0;
+    NSString *bytesSuffix = (kilo == 1000.0) ? @"B" : @"iB";
+    
+    if (size < kilo)
+        return([NSString stringWithFormat:@"%1.0f bytes",size]);
+    size = size / kilo;
+    if (size < kilo)
+        return([NSString stringWithFormat:@"%1.1f K%@",size,bytesSuffix]);
+    size = size / kilo;
+    if (size < kilo)
+        return([NSString stringWithFormat:@"%1.1f M%@",size,bytesSuffix]);
+    size = size / kilo;
+    if (size < kilo)
+        return([NSString stringWithFormat:@"%1.1f G%@",size,bytesSuffix]);
+    size = size / kilo;
+        
+    return([NSString stringWithFormat:@"%1.1f T%@",size,bytesSuffix]);
 }
 
 

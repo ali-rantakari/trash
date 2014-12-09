@@ -28,9 +28,9 @@ THE SOFTWARE.
 
 #import <Cocoa/Cocoa.h>
 
-#define kTigerOSVersion			100400
-#define kLeopardOSVersion		100500
-#define kSnowLeopardOSVersion	100600
+#define kTigerOSVersion         100400
+#define kLeopardOSVersion       100500
+#define kSnowLeopardOSVersion   100600
 
 NSInteger OSVersion();
 

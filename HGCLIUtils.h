@@ -34,10 +34,10 @@ extern NSStringEncoding outputStrEncoding;
 
 
 // helper function macros
-#define kEmptyMutableAttributedString 	[[[NSMutableAttributedString alloc] init] autorelease]
-#define MUTABLE_ATTR_STR(x)				[[[NSMutableAttributedString alloc] initWithString:(x)] autorelease]
-#define ATTR_STR(x)						[[[NSAttributedString alloc] initWithString:(x)] autorelease]
-#define WHITESPACE(x)					[@"" stringByPaddingToLength:(x) withString:@" " startingAtIndex:0]
+#define kEmptyMutableAttributedString   [[[NSMutableAttributedString alloc] init] autorelease]
+#define MUTABLE_ATTR_STR(x)             [[[NSMutableAttributedString alloc] initWithString:(x)] autorelease]
+#define ATTR_STR(x)                     [[[NSAttributedString alloc] initWithString:(x)] autorelease]
+#define WHITESPACE(x)                   [@"" stringByPaddingToLength:(x) withString:@" " startingAtIndex:0]
 
 
 

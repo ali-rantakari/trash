@@ -105,21 +105,21 @@ NSUInteger sizeOfDirectoryFSRef(FSRef *theFileRef, BOOL asPhysicalSize)
 
 static FSRef fsrefFromFilePath(NSString *filePath)
 {
-	FSRef fsRef;
-	FSPathMakeRefWithOptions(
-		(const UInt8 *)[filePath fileSystemRepresentation],
-		kFSPathMakeRefDoNotFollowLeafSymlink,
-		&fsRef,
-		NULL // Boolean *isDirectory
-		);
-	return fsRef;
+    FSRef fsRef;
+    FSPathMakeRefWithOptions(
+        (const UInt8 *)[filePath fileSystemRepresentation],
+        kFSPathMakeRefDoNotFollowLeafSymlink,
+        &fsRef,
+        NULL // Boolean *isDirectory
+        );
+    return fsRef;
 }
 
 
 NSUInteger sizeOfFolder(NSString *folderPath, BOOL asPhysicalSize)
 {
-	FSRef theFileRef = fsrefFromFilePath(folderPath);
-	return sizeOfDirectoryFSRef(&theFileRef, asPhysicalSize);
+    FSRef theFileRef = fsrefFromFilePath(folderPath);
+    return sizeOfDirectoryFSRef(&theFileRef, asPhysicalSize);
 }
 
 
