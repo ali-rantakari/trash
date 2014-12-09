@@ -43,7 +43,7 @@ THE SOFTWARE.
 
 const int VERSION_MAJOR = 0;
 const int VERSION_MINOR = 8;
-const int VERSION_BUILD = 5;
+const int VERSION_BUILD = 6;
 
 BOOL arg_verbose = NO;
 
@@ -81,11 +81,15 @@ void checkForRoot()
 	Printf(@"of your trash folder. Are you sure you want to continue?\n");
 
 	Printf(@"[y/N]: ");
-	char inputChar;
-	scanf("%s&*c",&inputChar);
+	
+	char *line = NULL, inputChar = '\0';
+	size_t unused;
+
+	if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
+	if (line) free(line);
 
 	if (inputChar != 'y' && inputChar != 'Y')
-		exit(0);
+		exit(1);
 }
 
 
@@ -149,7 +153,7 @@ void listTrashContents(BOOL showAdditionalInfo)
 }
 
 
-OSStatus emptyTrash(BOOL securely)
+OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 {
 	FinderApplication *finder = getFinderApp();
 
@@ -160,32 +164,39 @@ OSStatus emptyTrash(BOOL securely)
 		return noErr;
 	}
 
-	BOOL plural = (trashItemsCount > 1);
-	Printf(
-		@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanantly%@ delete %@ item%@?\n",
-		plural?@"are":@"is",
-		trashItemsCount,
-		plural?@"s":@"",
-		securely?@" (and securely)":@"",
-		plural?@"these":@"this",
-		plural?@"s":@""
-		);
-	Printf(@"(y = permanently empty the trash, l = list items in trash, n = don't empty)\n");
-
-	for (;;)
+	if (!skipPrompt)
 	{
-		Printf(@"[y/l/N]: ");
-		char inputChar;
-		scanf("%s&*c",&inputChar);
+		BOOL plural = (trashItemsCount > 1);
+		Printf(
+			@"There %@ currently %i item%@ in the trash.\nAre you sure you want to permanently%@ delete %@ item%@?\n",
+			plural?@"are":@"is",
+			trashItemsCount,
+			plural?@"s":@"",
+			securely?@" (and securely)":@"",
+			plural?@"these":@"this",
+			plural?@"s":@""
+			);
+		Printf(@"(y = permanently empty the trash, l = list items in trash, n = don't empty)\n");
 
-		if (inputChar == 'l' || inputChar == 'L')
+		for (;;)
 		{
-			listTrashContents(false);
-			continue;
+			Printf(@"[y/l/N]: ");
+
+			char *line = NULL, inputChar = '\0';
+			size_t unused;
+
+			if (getline(&line, &unused, stdin) > 0) inputChar = line[0];
+			if (line) free(line);
+
+			if (inputChar == 'l' || inputChar == 'L')
+			{
+				listTrashContents(false);
+				continue;
+			}
+			else if (inputChar != 'y' && inputChar != 'Y')
+				return kHGNotAllFilesTrashedError;
+			break;
 		}
-		else if (inputChar != 'y' && inputChar != 'Y')
-			return kHGNotAllFilesTrashedError;
-		break;
 	}
 
 	if (securely)
@@ -374,7 +385,7 @@ NSString* versionNumberStr()
 char *myBasename;
 void printUsage()
 {
-	Printf(@"usage: %s [-ulesv] <file> [<file> ...]\n", myBasename);
+	Printf(@"usage: %s [-ulesyv] <file> [<file> ...]\n", myBasename);
 	Printf(@"\n"
 	       @"  Move files/folders to the trash.\n"
 	       @"\n"
@@ -395,6 +406,8 @@ void printUsage()
 	       @"      to see additional information)\n"
 	       @"  -e  Empty the trash (asks for confirmation)\n"
 	       @"  -s  Securely empty the trash (asks for confirmation)\n"
+	       @"  -y  Skips the confirmation prompt for -e and -s.\n"
+	       @"      CAUTION: Deletes permanently instantly.\n"
 	       @"\n"
 	       @"  Options supported by `rm` are silently accepted.\n"
 	       @"\n"
@@ -421,10 +434,11 @@ int main(int argc, char *argv[])
 	BOOL arg_list = NO;
 	BOOL arg_empty = NO;
 	BOOL arg_emptySecurely = NO;
+	BOOL arg_skipPrompt = NO;
 	BOOL arg_useFinderForAll = YES;
 
 	char *optstring =
-		"uvlesa" // The options we support
+		"uvlesya" // The options we support
 		"dfirPRW" // Options supported by `rm`
 		;
 
@@ -442,6 +456,8 @@ int main(int argc, char *argv[])
 			case 'e':	arg_empty = YES;
 				break;
 			case 's':	arg_emptySecurely = YES;
+				break;
+			case 'y':	arg_skipPrompt = YES;
 				break;
 			case 'd':
 			case 'f':
@@ -467,7 +483,7 @@ int main(int argc, char *argv[])
 	}
 	else if (arg_empty || arg_emptySecurely)
 	{
-		OSStatus status = emptyTrash(arg_emptySecurely);
+		OSStatus status = emptyTrash(arg_emptySecurely, arg_skipPrompt);
 		return (status == noErr) ? 0 : 1;
 	}
 
