@@ -387,7 +387,9 @@ NSString *osStatusToErrorString(OSStatus status)
 void verbosePrintPaths(NSArray *arr)
 {
 	for (NSString *path in arr)
+	{
 		VerbosePrintf(@"%@\n", path);
+	}
 }
 
 
