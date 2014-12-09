@@ -133,7 +133,7 @@ static void printDiskUsageOfFinderItems(NSArray *finderItems)
     NSUInteger totalPhysicalSize = 0;
 
     Printf(@"\nCalculating total disk usage of files in trash...\n");
-    for (id item in finderItems)
+    for (FinderItem *item in finderItems)
     {
         NSUInteger size = 0;
         NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
@@ -167,7 +167,7 @@ static void listTrashContents(BOOL showAdditionalInfo)
 {
     FinderApplication *finder = getFinderApp();
     NSArray *itemsInTrash = [finder.trash items];
-    for (id item in itemsInTrash)
+    for (FinderItem *item in itemsInTrash)
     {
         NSString *path = [[NSURL URLWithString:(NSString *)[item URL]] path];
         Printf(@"%@\n", path);
