@@ -41,16 +41,16 @@ THE SOFTWARE.
 #define kHGAppleScriptError         9999
 #define kHGNotAllFilesTrashedError  9998
 
-const int VERSION_MAJOR = 0;
-const int VERSION_MINOR = 8;
-const int VERSION_BUILD = 6;
+static const int VERSION_MAJOR = 0;
+static const int VERSION_MINOR = 8;
+static const int VERSION_BUILD = 6;
 
-BOOL arg_verbose = NO;
-
-
+static BOOL arg_verbose = NO;
 
 
-void VerbosePrintf(NSString *aStr, ...)
+
+
+static void VerbosePrintf(NSString *aStr, ...)
 {
     if (!arg_verbose)
         return;
@@ -69,7 +69,7 @@ void VerbosePrintf(NSString *aStr, ...)
 }
 
 
-char promptForChar(const char *acceptableChars)
+static char promptForChar(const char *acceptableChars)
 {
     const char *acceptableCharsLowercase = @(acceptableChars).lowercaseString.UTF8String;
 
@@ -100,7 +100,7 @@ char promptForChar(const char *acceptableChars)
 }
 
 
-void checkForRoot()
+static void checkForRoot()
 {
     if (getuid() != 0)
         return;
@@ -115,7 +115,7 @@ void checkForRoot()
 }
 
 
-FinderApplication *getFinderApp()
+static FinderApplication *getFinderApp()
 {
     static FinderApplication *cached = nil;
     if (cached != nil)
@@ -125,7 +125,7 @@ FinderApplication *getFinderApp()
 }
 
 
-void printDiskUsageOfFinderItems(NSArray *finderItems)
+static void printDiskUsageOfFinderItems(NSArray *finderItems)
 {
     NSUInteger totalPhysicalSize = 0;
 
@@ -160,7 +160,7 @@ void printDiskUsageOfFinderItems(NSArray *finderItems)
 }
 
 
-void listTrashContents(BOOL showAdditionalInfo)
+static void listTrashContents(BOOL showAdditionalInfo)
 {
     FinderApplication *finder = getFinderApp();
     NSArray *itemsInTrash = [finder.trash items];
@@ -175,7 +175,7 @@ void listTrashContents(BOOL showAdditionalInfo)
 }
 
 
-OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
+static OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 {
     FinderApplication *finder = getFinderApp();
 
@@ -228,7 +228,7 @@ OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 
 // return absolute path for file *without* following possible
 // leaf symlink
-NSString *getAbsolutePath(NSString *filePath)
+static NSString *getAbsolutePath(NSString *filePath)
 {
     NSString *parentDirPath = nil;
     if (![filePath hasPrefix:@"/"]) // relative path
@@ -243,7 +243,7 @@ NSString *getAbsolutePath(NSString *filePath)
 }
 
 
-ProcessSerialNumber getFinderPSN()
+static ProcessSerialNumber getFinderPSN()
 {
     ProcessSerialNumber psn = {0, 0};
 
@@ -263,7 +263,7 @@ ProcessSerialNumber getFinderPSN()
 }
 
 
-OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront)
+static OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront)
 {
     // Here we manually send Finder the Apple Event that tells it
     // to trash the specified files all at once. This is roughly
@@ -344,7 +344,7 @@ OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinderToFront
 }
 
 
-FSRef getFSRef(NSString *filePath)
+static FSRef getFSRef(NSString *filePath)
 {
     FSRef fsRef;
     FSPathMakeRefWithOptions(
@@ -356,7 +356,7 @@ FSRef getFSRef(NSString *filePath)
     return fsRef;
 }
 
-OSStatus moveFileToTrashFSRef(FSRef fsRef)
+static OSStatus moveFileToTrashFSRef(FSRef fsRef)
 {
     // We use FSMoveObjectToTrashSync() directly instead of
     // using NSWorkspace's performFileOperation:... (which
@@ -370,7 +370,7 @@ OSStatus moveFileToTrashFSRef(FSRef fsRef)
 }
 
 
-NSString *osStatusToErrorString(OSStatus status)
+static NSString *osStatusToErrorString(OSStatus status)
 {
     // GetMacOSStatusCommentString() generally shouldn't be used
     // to provide error messages to users but using it is much better
@@ -383,7 +383,7 @@ NSString *osStatusToErrorString(OSStatus status)
 }
 
 
-void verbosePrintPaths(NSArray *arr)
+static void verbosePrintPaths(NSArray *arr)
 {
     for (NSString *path in arr)
     {
@@ -392,13 +392,13 @@ void verbosePrintPaths(NSArray *arr)
 }
 
 
-NSString* versionNumberStr()
+static NSString* versionNumberStr()
 {
     return [NSString stringWithFormat:@"%d.%d.%d", VERSION_MAJOR, VERSION_MINOR, VERSION_BUILD];
 }
 
-char *myBasename;
-void printUsage()
+static char *myBasename;
+static void printUsage()
 {
     Printf(@"usage: %s [-ulesyv] <file> [<file> ...]\n", myBasename);
     Printf(@"\n"
