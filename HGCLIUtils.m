@@ -50,6 +50,8 @@ void Printf(NSString *aStr, ...)
 {
     va_list argList;
     va_start(argList, aStr);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
     NSString *str = [
         [[NSString alloc]
             initWithFormat:aStr
@@ -57,6 +59,7 @@ void Printf(NSString *aStr, ...)
             arguments:argList
             ] autorelease
         ];
+#pragma clang diagnostic pop
     va_end(argList);
     
     [str writeToFile:@"/dev/stdout" atomically:NO encoding:outputStrEncoding error:NULL];
@@ -66,6 +69,8 @@ void PrintfErr(NSString *aStr, ...)
 {
     va_list argList;
     va_start(argList, aStr);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
     NSString *str = [
         [[NSString alloc]
             initWithFormat:aStr
@@ -73,6 +78,7 @@ void PrintfErr(NSString *aStr, ...)
             arguments:argList
             ] autorelease
         ];
+#pragma clang diagnostic pop
     va_end(argList);
     
     [str writeToFile:@"/dev/stderr" atomically:NO encoding:outputStrEncoding error:NULL];
