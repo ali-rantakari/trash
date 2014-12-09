@@ -365,7 +365,6 @@ OSStatus moveFileToTrashFSRef(FSRef fsRef)
 	// and the latter only returns a BOOL describing success
 	// or failure.
 	//
-
 	OSStatus ret = FSMoveObjectToTrashSync(&fsRef, NULL, kFSFileOperationDefaultOptions);
 	return ret;
 }
