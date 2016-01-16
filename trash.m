@@ -182,7 +182,7 @@ static OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 {
     FinderApplication *finder = getFinderApp();
 
-    NSUInteger tlerashItemsCount = [[finder.trash items] count];
+    NSUInteger trashItemsCount = [[finder.trash items] count];
     if (trashItemsCount == 0)
     {
         Printf(@"The trash is already empty.\n");
