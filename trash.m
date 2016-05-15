@@ -472,7 +472,7 @@ int main(int argc, char *argv[])
       size_t contentSize = 1;
       char *input = malloc(sizeof(char) * MAX_BUF);
       
-      if(input == NULL) {
+      if (input == NULL) {
 	perror("Failed to allocate input buffer");
 	exit(1);
       }
@@ -480,19 +480,19 @@ int main(int argc, char *argv[])
       input[0] = '\0';
       
       while(fgets(buffer, MAX_BUF, stdin)) {
-	  char *prev = input;
+	char *prev = input;
 	  
-	  contentSize += strlen(buffer);
-	  input = realloc(input, contentSize);
+	contentSize += strlen(buffer);
+	input = realloc(input, contentSize);
 	  
-	  if (input == NULL) {
-	    perror("Failed to reallocate buffer");
-	    free(prev);
-	    exit(2);
-	  }
-	  
-	  strcat(input, buffer);
+	if (input == NULL) {
+	  perror("Failed to reallocate buffer");
+	  free(prev);
+	  exit(2);
 	}
+	  
+	strcat(input, buffer);
+      }
 
       if (ferror(stdin)) {
 	free(input);
@@ -537,6 +537,7 @@ int main(int argc, char *argv[])
       for (i = 1; i < argCount + 1; i++) {
 	stripBackslashes(files[i]);
       }
+      
       argc += argCount;
       optind = 1;
     }
@@ -607,7 +608,7 @@ int main(int argc, char *argv[])
     // after the first restricted item are not trashed at all
     NSMutableArray *nonRestrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
     NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
-    
+
     int i;
     for (i = optind; i < argc; i++)
     {
