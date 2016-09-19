@@ -7,6 +7,23 @@ See [my blog post][post] for more info on some initial implementation details an
 [post]: http://hasseg.org/blog/post/406/trash-files-from-the-os-x-command-line/
 
 
+## Installing
+
+Via [Homebrew]:
+
+    brew install trash
+
+Manually:
+
+    $ make
+    $ cp trash /usr/local/bin/
+    $ make docs
+    $ cp trash.1 /usr/local/share/man/man1/
+
+
+[Homebrew]: http://brew.sh
+
+
 ## The “put back” feature
 
 By default, `trash` asks Finder to move the specified files/folders to the trash instead of calling the system API to do this because of the _"put back"_ feature that only works when trashing files through Finder.
