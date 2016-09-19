@@ -9,7 +9,7 @@ B<trash> -- move files/folders to the trash
 
 =item B<trash>
 
-[B<-avles>] I<file> I<...>
+[B<-avlesy>] I<file> I<...>
 
 =back
 
@@ -40,6 +40,10 @@ Empty the trash. B<trash> asks for confirmation before executing this action. If
 =item B<-s>
 
 Securely empty the trash. B<trash> asks for confirmation before executing this action. If this argument is used, no files need to be specified.
+
+=item B<-y>
+
+Skips the confirmation prompt for B<-e> and B<-s>. CAUTION: Deletes permanently instantly.
 
 =back
 
