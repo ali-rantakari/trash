@@ -403,7 +403,7 @@ static NSString* versionNumberStr()
 static char *myBasename;
 static void printUsage()
 {
-    Printf(@"usage: %s [-ulesyv] <file> [<file> ...]\n", myBasename);
+    Printf(@"usage: %s [-avlesy] <file> [<file> ...]\n", myBasename);
     Printf(@"\n"
            @"  Move files/folders to the trash.\n"
            @"\n"
@@ -456,7 +456,7 @@ int main(int argc, char *argv[])
     BOOL arg_useFinderForAll = YES;
 
     char *optstring =
-        "uvlesya" // The options we support
+        "avlesy" // The options we support
         "dfirPRW" // Options supported by `rm`
         ;
 
