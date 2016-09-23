@@ -40,6 +40,7 @@ THE SOFTWARE.
 // (Apple reserves OSStatus values outside the range 1000-9999 inclusive)
 #define kHGAppleScriptError         9999
 #define kHGNotAllFilesTrashedError  9998
+#define MAX_BUF 100
 
 static const int VERSION_MAJOR = 0;
 static const int VERSION_MINOR = 8;
@@ -434,7 +435,19 @@ static void printUsage()
            @"\n", versionNumberStr());
 }
 
-
+void stripBackslashes(char *s) {
+  char *a, *b;
+  a = b = s;
+  
+  while (*a) {
+    if ((*a) != '\\') {
+      *b = *a;
+      b++;
+    }
+    a++;
+  }
+  *b = '\0';
+}
 
 int main(int argc, char *argv[])
 {
@@ -443,11 +456,93 @@ int main(int argc, char *argv[])
     int exitValue = 0;
     myBasename = basename(argv[0]);
 
-    if (argc == 1)
-    {
+    
+    char** files;
+    if (isatty(fileno(stdin))) {
+      
+      if (argc == 1) {
         printUsage();
         return 0;
+      }
+      
+      files = argv;
+      
+    } else {
+      char buffer[MAX_BUF];
+      size_t contentSize = 1;
+      char *input = malloc(sizeof(char) * MAX_BUF);
+      
+      if (input == NULL) {
+	perror("Failed to allocate input buffer");
+	exit(1);
+      }
+      
+      input[0] = '\0';
+      
+      while(fgets(buffer, MAX_BUF, stdin)) {
+	char *prev = input;
+	  
+	contentSize += strlen(buffer);
+	input = realloc(input, contentSize);
+	  
+	if (input == NULL) {
+	  perror("Failed to reallocate buffer");
+	  free(prev);
+	  exit(2);
+	}
+	  
+	strcat(input, buffer);
+      }
+
+      if (ferror(stdin)) {
+	free(input);
+	perror("Error reading from stdin.");
+	exit(3);
+      }
+      
+      input[strlen(input) - 1] = '\0';
+
+      int argCount = 1;
+      int i = 0;
+      while (input[i] != '\0') {
+	if (input[i] == ' ') {
+	  if (i == 0 || input[i-1] != '\\') {
+	    argCount++;
+	  }
+	}
+
+	i++;
+      }
+      
+      files = (char**) malloc((argCount + 1) * sizeof(char*));
+
+      files[1] = input;
+
+      i = 2;
+      while (argCount - i + 1) {
+	char* arg = strstr(input, " ");
+	while (arg[-1] == '\\') {
+	  
+	  arg = strstr(arg+1, " ");
+	}
+	*arg = '\0';
+	arg += 1;
+
+	files[i] = arg;
+	i++;
+	input = arg;
+      }
+      
+
+      for (i = 1; i < argCount + 1; i++) {
+	stripBackslashes(files[i]);
+      }
+      
+      argc += argCount;
+      optind = 1;
     }
+    
+    
 
     BOOL arg_list = NO;
     BOOL arg_empty = NO;
@@ -461,7 +556,7 @@ int main(int argc, char *argv[])
         ;
 
     int opt;
-    while ((opt = getopt(argc, argv, optstring)) != EOF)
+    while ((opt = getopt(argc, files, optstring)) != EOF)
     {
         switch (opt)
         {
@@ -518,16 +613,16 @@ int main(int argc, char *argv[])
     for (i = optind; i < argc; i++)
     {
         // Note: don't standardize the path! we don't want to expand leaf symlinks.
-        NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
+        NSString *path = [[NSString stringWithUTF8String:files[i]] stringByExpandingTildeInPath];
         if (path == nil)
         {
-            PrintfErr(@"trash: %s: invalid path\n", argv[i]);
+            PrintfErr(@"trash: %s: invalid path\n", files[i]);
             continue;
         }
 
         if (![[NSFileManager defaultManager] fileExistsAtPath:path])
         {
-            PrintfErr(@"trash: %s: path does not exist\n", argv[i]);
+            PrintfErr(@"trash: %s: path does not exist\n", files[i]);
             exitValue = 1;
             continue;
         }
@@ -550,7 +645,7 @@ int main(int argc, char *argv[])
             {
                 PrintfErr(
                     @"trash: %s: cannot get file privileges (%i: %@)\n",
-                    argv[i],
+                    files[i],
                     getCatalogStatus,
                     osStatusToErrorString(getCatalogStatus)
                     );
@@ -576,7 +671,7 @@ int main(int argc, char *argv[])
             exitValue = 1;
             PrintfErr(
                 @"trash: %s: can not move to trash (%i: %@)\n",
-                argv[i],
+                files[i],
                 status,
                 osStatusToErrorString(status)
                 );
@@ -618,11 +713,3 @@ int main(int argc, char *argv[])
     [autoReleasePool release];
     return exitValue;
 }
-
-
-
-
-
-
-
-
