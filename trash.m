@@ -7,7 +7,7 @@
 /*
 The MIT License
 
-Copyright (c) 2010 Ali Rantakari
+Copyright (c) 2010–2017 Ali Rantakari
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -430,7 +430,7 @@ static void printUsage()
            @"  Options supported by `rm` are silently accepted.\n"
            @"\n"
            @"Version %@\n"
-           @"Copyright (c) 2010 Ali Rantakari, http://hasseg.org/trash\n"
+           @"Copyright (c) 2010–2017 Ali Rantakari, http://hasseg.org/trash\n"
            @"\n", versionNumberStr());
 }
 
