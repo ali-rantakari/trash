@@ -91,7 +91,7 @@ static char promptForChar(const char *acceptableChars)
         char *line = NULL;
         size_t lineLength = 0;
         ssize_t numCharsWritten = getline(&line, &lineLength, stdin);
-        char inputCharLowercase = (0 < numCharsWritten) ? tolower(line[0]) : '\0';
+        char inputCharLowercase = (0 < numCharsWritten) ? (char)tolower(line[0]) : '\0';
         free(line);
 
         if (numCharsWritten == 0)
@@ -143,7 +143,7 @@ static void printDiskUsageOfFinderItems(NSArray *finderItems)
             continue;
 
         if (!isDir)
-            size = [item physicalSize];
+            size = (NSUInteger)[item physicalSize];
         else
             size = sizeOfFolder(path, YES);
 
