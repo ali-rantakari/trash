@@ -240,7 +240,9 @@ static NSString *getAbsolutePath(NSString *filePath)
         parentDirPath = [[currentPath stringByAppendingPathComponent:[filePath stringByDeletingLastPathComponent]] stringByStandardizingPath];
     }
     else // already absolute -- we just want to standardize without following possible leaf symlink
+    {
         parentDirPath = [[filePath stringByDeletingLastPathComponent] stringByStandardizingPath];
+    }
 
     return [parentDirPath stringByAppendingPathComponent:[filePath lastPathComponent]];
 }
@@ -340,7 +342,7 @@ static OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinder
 
     NSAppleEventDescriptor *replyDesc = [[[NSAppleEventDescriptor alloc] initWithAEDescNoCopy:&replyAEDesc] autorelease];
     if ([replyDesc numberOfItems] == 0
-        || ([filePaths count] > 1 && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != (NSInteger)[filePaths count])))
+        || (1 < filePaths.count && ([replyDesc descriptorType] != typeAEList || [replyDesc numberOfItems] != (NSInteger)filePaths.count)))
         return kHGNotAllFilesTrashedError;
 
     return noErr;
@@ -501,8 +503,7 @@ int main(int argc, char *argv[])
 
     NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 
-    int i;
-    for (i = optind; i < argc; i++)
+    for (int i = optind; i < argc; i++)
     {
         // Note: don't standardize the path! we don't want to expand leaf symlinks.
         NSString *path = [[NSString stringWithUTF8String:argv[i]] stringByExpandingTildeInPath];
@@ -523,7 +524,9 @@ int main(int argc, char *argv[])
 
         OSStatus status = moveFileToTrashFSRef(fsRef);
         if (status == afpAccessDenied)
+        {
             [restrictedPathsForFinder addObject:path];
+        }
         else if (status != noErr)
         {
             exitValue = 1;
@@ -535,11 +538,13 @@ int main(int argc, char *argv[])
                 );
         }
         else
+        {
             VerbosePrintf(@"%@\n", path);
+        }
     }
 
 
-    if ([restrictedPathsForFinder count] > 0)
+    if (0 < restrictedPathsForFinder.count)
     {
         OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
         if (status != noErr)
