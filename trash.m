@@ -42,8 +42,8 @@ THE SOFTWARE.
 #define kHGNotAllFilesTrashedError  9998
 
 static const int VERSION_MAJOR = 0;
-static const int VERSION_MINOR = 8;
-static const int VERSION_BUILD = 6;
+static const int VERSION_MINOR = 9;
+static const int VERSION_BUILD = 0;
 
 static BOOL arg_verbose = NO;
 
