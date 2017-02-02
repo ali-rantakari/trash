@@ -403,17 +403,12 @@ static NSString* versionNumberStr()
 static char *myBasename;
 static void printUsage()
 {
-    Printf(@"usage: %s [-avlesy] <file> [<file> ...]\n", myBasename);
+    Printf(@"usage: %s [-vlesy] <file> [<file> ...]\n", myBasename);
     Printf(@"\n"
            @"  Move files/folders to the trash.\n"
            @"\n"
            @"  Options to use with <file>:\n"
            @"\n"
-           @"  -a  Use system API for trashing files instead of asking\n"
-           @"      Finder to do it. (Faster, but the 'put back' feature\n"
-           @"      in the Finder trash will not work if files are trashed\n"
-           @"      using this method.) Finder is still used for trashing\n"
-           @"      files you have no access rights for.\n"
            @"  -v  Be verbose (show files as they are trashed, or if\n"
            @"      used with the -l option, show additional information\n"
            @"      about the trash contents)\n"
@@ -453,10 +448,9 @@ int main(int argc, char *argv[])
     BOOL arg_empty = NO;
     BOOL arg_emptySecurely = NO;
     BOOL arg_skipPrompt = NO;
-    BOOL arg_useFinderForAll = YES;
 
     char *optstring =
-        "avlesy" // The options we support
+        "vlesy" // The options we support
         "dfirPRW" // Options supported by `rm`
         ;
 
@@ -465,8 +459,6 @@ int main(int argc, char *argv[])
     {
         switch (opt)
         {
-            case 'a':   arg_useFinderForAll = NO;
-                break;
             case 'v':   arg_verbose = YES;
                 break;
             case 'l':   arg_list = YES;
@@ -505,13 +497,8 @@ int main(int argc, char *argv[])
         return (status == noErr) ? 0 : 1;
     }
 
-    if (!arg_useFinderForAll)
-        checkForRoot();
+    checkForRoot();
 
-    // Always separate restricted and other items and call askFinderToMoveFilesToTrash() for
-    // both groups separately because if the user cancels the authentication any files listed
-    // after the first restricted item are not trashed at all
-    NSMutableArray *nonRestrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
     NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 
     int i;
@@ -534,40 +521,6 @@ int main(int argc, char *argv[])
 
         FSRef fsRef = getFSRef(path);
 
-        if (arg_useFinderForAll)
-        {
-            // get file info
-            FSCatalogInfo catInfo;
-            OSErr getCatalogStatus = FSGetCatalogInfo(
-                &fsRef,
-                kFSCatInfoUserPrivs|kFSCatInfoPermissions,
-                &catInfo,
-                NULL, // HFSUniStr255 *outName
-                NULL, // FSSpecPtr fsSpec
-                NULL // FSRef *parentRef
-                );
-            if (getCatalogStatus != noErr)
-            {
-                PrintfErr(
-                    @"trash: %s: cannot get file privileges (%i: %@)\n",
-                    argv[i],
-                    getCatalogStatus,
-                    osStatusToErrorString(getCatalogStatus)
-                    );
-                exitValue = 1;
-                continue;
-            }
-
-            BOOL deletable = ((catInfo.userPrivileges & kioACUserNoMakeChangesMask) == 0);
-
-            if (!deletable)
-                [restrictedPathsForFinder addObject:path];
-            else
-                [nonRestrictedPathsForFinder addObject:path];
-
-            continue;
-        }
-
         OSStatus status = moveFileToTrashFSRef(fsRef);
         if (status == afpAccessDenied)
             [restrictedPathsForFinder addObject:path];
@@ -585,20 +538,6 @@ int main(int argc, char *argv[])
             VerbosePrintf(@"%@\n", path);
     }
 
-
-    if ([nonRestrictedPathsForFinder count] > 0)
-    {
-        OSStatus status = askFinderToMoveFilesToTrash(nonRestrictedPathsForFinder, NO);
-        if (status != noErr)
-            exitValue = 1;
-        else
-            verbosePrintPaths(nonRestrictedPathsForFinder);
-
-        if (status == kHGNotAllFilesTrashedError)
-            PrintfErr(@"trash: some files were not moved to trash\n");
-        else if (status != noErr)
-            PrintfErr(@"trash: error %i\n", status);
-    }
 
     if ([restrictedPathsForFinder count] > 0)
     {
