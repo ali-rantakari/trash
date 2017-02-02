@@ -248,23 +248,15 @@ static NSString *getAbsolutePath(NSString *filePath)
 }
 
 
-static ProcessSerialNumber getFinderPSN()
+static pid_t getFinderPID()
 {
-    ProcessSerialNumber psn = {0, 0};
-
-    NSEnumerator *appsEnumerator = [[[NSWorkspace sharedWorkspace] launchedApplications] objectEnumerator];
-    NSDictionary *appInfoDict = nil;
-    while ((appInfoDict = [appsEnumerator nextObject]))
+    for (NSRunningApplication *app in NSWorkspace.sharedWorkspace.runningApplications)
     {
-        if ([[appInfoDict objectForKey:@"NSApplicationBundleIdentifier"] isEqualToString:@"com.apple.finder"])
-        {
-            psn.highLongOfPSN = [[appInfoDict objectForKey:@"NSApplicationProcessSerialNumberHigh"] longValue];
-            psn.lowLongOfPSN  = [[appInfoDict objectForKey:@"NSApplicationProcessSerialNumberLow"] longValue];
-            break;
-        }
+        if ([app.bundleIdentifier isEqualToString:@"com.apple.finder"])
+            return app.processIdentifier;
     }
 
-    return psn;
+    return -1;
 }
 
 
@@ -308,11 +300,11 @@ static OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinder
     }
 
     // generate the 'top-level' "delete" descriptor
-    ProcessSerialNumber finderPSN = getFinderPSN();
+    pid_t finderPID = getFinderPID();
     NSAppleEventDescriptor *targetDesc = [NSAppleEventDescriptor
-        descriptorWithDescriptorType:'psn '
-        bytes:&finderPSN
-        length:sizeof(finderPSN)
+        descriptorWithDescriptorType:typeKernelProcessID
+        bytes:&finderPID
+        length:sizeof(finderPID)
         ];
     NSAppleEventDescriptor *descriptor = [NSAppleEventDescriptor
         appleEventWithEventClass:'core'
