@@ -229,6 +229,21 @@ static OSStatus emptyTrash(BOOL securely, BOOL skipPrompt)
 
 
 
+static BOOL fileExistsAtPath(NSString *filePath)
+{
+    // -[NSFileManager fileExistsAtPath:] follows symlinks and returns
+    // NO for symlinks that exist but point to a nonexistent target.
+    // We don’t want to follow symlinks here — if the given path is
+    // for a symlink, we want to determine whether it itself exists.
+
+    NSError *error = nil;
+    NSDictionary *attributes = [[NSFileManager defaultManager] attributesOfItemAtPath:filePath error:&error];
+    return !(attributes == nil
+             && [error.domain isEqualToString:NSCocoaErrorDomain]
+             && error.code == NSFileReadNoSuchFileError);
+}
+
+
 // return absolute path for file *without* following possible
 // leaf symlink
 static NSString *getAbsolutePath(NSString *filePath)
@@ -505,7 +520,7 @@ int main(int argc, char *argv[])
             continue;
         }
 
-        if (![[NSFileManager defaultManager] fileExistsAtPath:path])
+        if (!fileExistsAtPath(path))
         {
             PrintfErr(@"trash: %s: path does not exist\n", argv[i]);
             exitValue = 1;
