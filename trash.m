@@ -300,6 +300,13 @@ static OSStatus askFinderToMoveFilesToTrash(NSArray *filePaths, BOOL bringFinder
     // and executing some AppleScript was. I also don't have
     // to worry about input sanitization anymore.
     //
+    // This method of moving files to the trash ensures that
+    // Finder plays the ‘trash’ sound, and that the “put back”
+    // feature is enabled (i.e. that Finder adds the appropriate
+    // metadata to the file in the trash).
+    // `-[NSWorkspace recycleURLs:completionHandler:]` (in
+    // High Sierra) does _not_ enable “put back”.
+    //
 
     // generate list descriptor containting the file URLs
     NSAppleEventDescriptor *urlListDescr = [NSAppleEventDescriptor listDescriptor];
