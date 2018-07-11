@@ -412,7 +412,7 @@ static NSString* versionNumberStr()
 static char *myBasename;
 static void printUsage()
 {
-    Printf(@"usage: %s [-vlesy] <file> [<file> ...]\n", myBasename);
+    Printf(@"usage: %s [-vlesyF] <file> [<file> ...]\n", myBasename);
     Printf(@"\n"
            @"  Move files/folders to the trash.\n"
            @"\n"
@@ -421,6 +421,8 @@ static void printUsage()
            @"  -v  Be verbose (show files as they are trashed, or if\n"
            @"      used with the -l option, show additional information\n"
            @"      about the trash contents)\n"
+           @"  -F  Ask Finder to move the files to the trash, instead of\n"
+           @"      using the system API.\n"
            @"\n"
            @"  Stand-alone options (to use without <file>):\n"
            @"\n"
@@ -457,9 +459,10 @@ int main(int argc, char *argv[])
     BOOL arg_empty = NO;
     BOOL arg_emptySecurely = NO;
     BOOL arg_skipPrompt = NO;
+    BOOL arg_useFinderToTrash = NO;
 
     char *optstring =
-        "vlesy" // The options we support
+        "vlesyF" // The options we support
         "dfirPRW" // Options supported by `rm`
         ;
 
@@ -477,6 +480,8 @@ int main(int argc, char *argv[])
             case 's':   arg_emptySecurely = YES;
                 break;
             case 'y':   arg_skipPrompt = YES;
+                break;
+            case 'F':   arg_useFinderToTrash = YES;
                 break;
             case 'd':
             case 'f':
@@ -508,7 +513,7 @@ int main(int argc, char *argv[])
 
     checkForRoot();
 
-    NSMutableArray *restrictedPathsForFinder = [NSMutableArray arrayWithCapacity:argc];
+    NSMutableArray *pathsForFinder = [NSMutableArray arrayWithCapacity:argc];
 
     for (int i = optind; i < argc; i++)
     {
@@ -527,12 +532,18 @@ int main(int argc, char *argv[])
             continue;
         }
 
+        if (arg_useFinderToTrash)
+        {
+            [pathsForFinder addObject:path];
+            continue;
+        }
+
         FSRef fsRef = getFSRef(path);
 
         OSStatus status = moveFileToTrashFSRef(fsRef);
         if (status == afpAccessDenied)
         {
-            [restrictedPathsForFinder addObject:path];
+            [pathsForFinder addObject:path];
         }
         else if (status != noErr)
         {
@@ -551,13 +562,13 @@ int main(int argc, char *argv[])
     }
 
 
-    if (0 < restrictedPathsForFinder.count)
+    if (0 < pathsForFinder.count)
     {
-        OSStatus status = askFinderToMoveFilesToTrash(restrictedPathsForFinder, YES);
+        OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, YES);
         if (status != noErr)
             exitValue = 1;
         else
-            verbosePrintPaths(restrictedPathsForFinder);
+            verbosePrintPaths(pathsForFinder);
 
         if (status == kHGNotAllFilesTrashedError)
             PrintfErr(@"trash: some files were not moved to trash (authentication cancelled?)\n");

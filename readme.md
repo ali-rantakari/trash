@@ -26,9 +26,7 @@ Manually:
 
 ## The “put back” feature
 
-By default, `trash` asks Finder to move the specified files/folders to the trash instead of calling the system API to do this because of the _"put back"_ feature that only works when trashing files through Finder.
-
-If you supply the `-a` argument, `trash` will first try the system API and only call on Finder to trash files you lack access rights for.
+By default, `trash` uses the low-level system API to move the specified files/folders to the trash. If you want `trash` to ask Finder to perform the trashing (e.g. to ensure that the _"put back"_ feature works), supply the `-F` argument.
 
 
 
