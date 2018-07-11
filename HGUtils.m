@@ -37,8 +37,7 @@ NSString *stringFromFileSize(long long aSize)
     // Finder uses SI prefixes for file sizes and disk capacities
     // (since Snow Leopard) so we'll do the same here.
     //
-    
-    if (NSClassFromString(@"NSByteCountFormatter")) {
+    if (@available(macOS 10.8, *)) {
         return [NSByteCountFormatter
             stringFromByteCount: aSize
             countStyle: NSByteCountFormatterCountStyleFile];
