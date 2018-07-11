@@ -39,9 +39,9 @@ NSString *stringFromFileSize(long long aSize)
     //
     
     if (NSClassFromString(@"NSByteCountFormatter")) {
-     
-        return [NSByteCountFormatter stringFromByteCount:aSize countStyle:NSByteCountFormatterCountStyleFile];
-        
+        return [NSByteCountFormatter
+            stringFromByteCount: aSize
+            countStyle: NSByteCountFormatterCountStyleFile];
     }
     
     CGFloat kilo = 1000.0;
