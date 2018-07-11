@@ -564,7 +564,11 @@ int main(int argc, char *argv[])
 
     if (0 < pathsForFinder.count)
     {
-        OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, YES);
+        // Bring finder to the front only if we’re using it as a fallback for
+        // restricted items (in which case it’ll probably display an authorization
+        // prompt).
+        BOOL bringFinderToFront = !arg_useFinderToTrash;
+        OSStatus status = askFinderToMoveFilesToTrash(pathsForFinder, bringFinderToFront);
         if (status != noErr)
             exitValue = 1;
         else
