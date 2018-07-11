@@ -36,7 +36,14 @@ NSString *stringFromFileSize(long long aSize)
     
     // Finder uses SI prefixes for file sizes and disk capacities
     // (since Snow Leopard) so we'll do the same here.
-    // 
+    //
+    
+    if (NSClassFromString(@"NSByteCountFormatter")) {
+     
+        return [NSByteCountFormatter stringFromByteCount:aSize countStyle:NSByteCountFormatterCountStyleFile];
+        
+    }
+    
     CGFloat kilo = 1000.0;
     
     if (size < kilo)
