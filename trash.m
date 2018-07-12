@@ -43,7 +43,7 @@ THE SOFTWARE.
 
 static const int VERSION_MAJOR = 0;
 static const int VERSION_MINOR = 9;
-static const int VERSION_BUILD = 1;
+static const int VERSION_BUILD = 2;
 
 static BOOL arg_verbose = NO;
 
