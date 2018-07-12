@@ -27,7 +27,7 @@ Be verbose when moving items to the trash, showing them as they are moved.
 
 =item B<-F>
 
-Ask Finder to move the files to the trash, instead of using the system API. This is slower, but it utilizes Finder’s UI (e.g. sounds) and ensures that the “put back” feature works.
+Ask Finder to move the files to the trash, instead of using the system API. This is slower, but it utilizes Finder's UI (e.g. sounds) and ensures that the "put back" feature works.
 
 =item B<-l>
 
