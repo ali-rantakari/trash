@@ -10,7 +10,7 @@ trash: $(SOURCE_FILES)
 	@echo
 	@echo ---- Compiling:
 	@echo ======================================
-	$(CC) -O2 -Wall -Wextra -Wpartial-availability -Wno-unguarded-availability -force_cpusubtype_ALL -mmacosx-version-min=10.7 -arch i386 -arch x86_64 -framework AppKit -framework ScriptingBridge -o $@ $(SOURCE_FILES)
+	$(CC) -O2 -Wall -Wextra -Wpartial-availability -Wno-unguarded-availability -force_cpusubtype_ALL -mmacosx-version-min=10.7 -arch x86_64 -framework AppKit -framework ScriptingBridge -o $@ $(SOURCE_FILES)
 
 analyze:
 	@echo
