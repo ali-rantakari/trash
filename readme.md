@@ -4,7 +4,7 @@ This is a small command-line program for OS X that moves files or folders to the
 
 See [my blog post][post] for more info on some initial implementation details and design decisions.
 
-[post]: http://hasseg.org/blog/post/406/trash-files-from-the-os-x-command-line/
+[post]: https://web.archive.org/web/20190912042303/http://hasseg.org/blog/post/406/trash-files-from-the-os-x-command-line/
 
 
 ## Installing
